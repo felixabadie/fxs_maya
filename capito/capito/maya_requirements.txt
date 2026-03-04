@@ -1,0 +1,4 @@
+plumbum
+fonttools
+pytz
+psutil

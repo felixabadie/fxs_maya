@@ -1,0 +1,37 @@
+{
+    "long_name": "Character",
+    "description": "",
+    "color": "#008080",
+    "steps": {
+        "mod":{
+            "maya": {
+                "filters": {
+                    "kinds": [],
+                    "steps": []
+                },
+                "importers": {},
+                "publishers": {}
+            }
+        },
+        "rig":{
+            "maya": {
+                "filters": {
+                    "kinds": [],
+                    "steps": []
+                },
+                "importers": {},
+                "publishers": {}
+            }
+        },
+        "shade":{
+            "maya": {
+                "filters": {
+                    "kinds": [],
+                    "steps": []
+                },
+                "importers": {},
+                "publishers": {}
+            }
+        }
+    }
+}

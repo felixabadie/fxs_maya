@@ -1,0 +1,21 @@
+{
+    "hlrs_server": "hawk.hww.hlrs.de",
+    "hlrs_user": "zmcjbomm",
+    "hlrs_node_limit": 60,
+    "ws_list": "/opt/hlrs/non-spack/system/ws/1.4.0/bin/ws_list",
+    "ws_find": "/opt/hlrs/non-spack/system/ws/1.4.0/bin/ws_find",
+    "qstat": "/opt/hlrs/non-spack/system/wrappers/bin/qstat",
+    "bridge_server": "141.62.110.225",
+    "bridge_user": "root",
+    "bridge_key": "",
+    "bridge_interpreter": "/root/hlrs_venv/bin/python",
+    "bridge_hlrs_caller": "",
+    "mount_point": "/mnt",
+    "share_map": {
+        "cg": "K:",
+        "cg1": "L:",
+        "cg2": "M:",
+        "cg3": "N:"
+    },
+    "hlrs_folders_regex": "/mnt/cg[123]/hlrs/*"
+}

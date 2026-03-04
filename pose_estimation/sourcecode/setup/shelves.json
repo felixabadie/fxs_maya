@@ -1,0 +1,35 @@
+{
+    "buttons":[
+        {
+            "sourceType": "python",
+            "image": "start.png",
+            "label": "DataGeneration",
+            "command": "from pose_estimation import data_generation; data_generation.DataGeneration()",
+            "annotation": "Start Data Generation"
+        },
+        {
+            "sourceType": "python",
+            "image": "split_data.png",
+            "label": "DataPrep",
+            "command": "from pose_estimation import data_prep; data_prep.main()",
+            "annotation": "Splits Data For CNN-Training"
+        },
+        {
+            "sourceType": "python",
+            "image": "Deploy.png",
+            "label": "PoseServer",
+            "command": "from pose_estimation import pose_server_launcher; pose_server_launcher.show_server_tool()",
+            "annotation": "Start Pose Server"
+        },
+        {
+            "sourceType": "python",
+            "image": "server.png",
+            "label": "DrawingGUI",
+            "command": "from pose_estimation import pose_server_launcher; pose_server_launcher.show_server_tool()",
+            "annotation": "Drawing Interface for pose prediction"
+        }
+    ],
+    "name": "pose_prediction",
+    "replace": true,
+    "position": 21
+}

@@ -1,0 +1,31 @@
+{
+    "long_name": "Shot",
+    "description": "",
+    "color": "#008080",
+    "steps": {
+        "light":{
+            "maya": {
+                "filters": {
+                    "kind": [],
+                    "step": []
+                },
+                "importers": {},
+                "publishers": {}
+            }
+        },
+        "render":{
+            "maya": {
+                "filters": {
+                    "kind": [],
+                    "step": []
+                },
+                "importers": {},
+                "publishers": {}
+            }
+        },
+        "comp":{
+            "maya": {
+            }
+        }
+    }
+}

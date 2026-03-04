@@ -1,0 +1,27 @@
+{
+    "long_name": "Prop",
+    "description": "",
+    "color": "#008080",
+    "steps": {
+        "mod":{
+            "maya": {
+                "filters": {
+                    "kind": [],
+                    "step": []
+                },
+                "importers": {},
+                "publishers": {}
+            }
+        },
+        "shade":{
+            "maya": {
+                "filters": {
+                    "kind": [],
+                    "step": []
+                },
+                "importers": {},
+                "publishers": {}
+            }
+        }
+    }
+}

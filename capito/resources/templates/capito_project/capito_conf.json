@@ -1,0 +1,19 @@
+{
+    "PROJECT_NAME": "",
+    "ASSETS_PATH": "assets",
+    "RELEASE_PATH": "{ASSETS_PATH}/{asset}",
+    "STEP_PATH": "{ASSETS_PATH}/{asset}/{step}",
+    "VERSION_PATH": "{STEP_PATH}/versions",
+    "VERSION_FILE": "{asset}_{step}_{version}_{user}_{time}.{extension}",
+    "REPRESENTATION_PATH": "{VERSION_PATH}/representations",
+    "REPRESENTATION_FILE": "{asset}_{step}_{version}_{description}.{extension}",
+    "RESOLUTION_3D_X": 1920,
+    "RESOLUTION_3D_Y": 1080,
+    "FRAMERATE": 24,
+    "DEFAULT_STARTFRAME": 1001,
+    "DEFAULT_ENDFRAME": 1120,
+    "TIMEZONE": "Europe/Berlin",
+    "ASSET_PROVIDER_TYPE": "Filesystem Based",
+    "GOOGLE_API_KEY_JSON": "",
+    "GOOGLE_SHEETS_NAME": ""
+}
