@@ -43,11 +43,6 @@ def create_shelf():
         py_drawingboard_cmd = "from pose_estimation.sourcecode import maya_deployment; maya_deployment.show_paint_tool()"
         py_pose_server_cmd = "from pose_estimation.sourcecode import pose_server_launcher; pose_server_launcher.show_server_tool()"
 
-        #py_data_generation_cmd = f"from {str(SOURCECODE_PATH)} import data_generation; data_generation.DataGeneration()"
-        #py_data_prep_cmd = f"from {str(SOURCECODE_PATH)} import data_prep; data_prep.main()"
-        #py_drawingboard_cmd = f"from {str(SOURCECODE_PATH)} import maya_deployment; maya_deployment.show_paint_tool()"
-        #py_pose_server_cmd = f"from {str(SOURCECODE_PATH)} import pose_server_launcher; pose_server_launcher.show_server_tool()"
-
         data_generation_icon = ICONS_PATH / "start.png"
         data_prep_icon = ICONS_PATH / "split_data.png"
         deploy_icon_path = ICONS_PATH / "Deploy.png"

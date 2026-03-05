@@ -86,6 +86,7 @@ def import_setup():
 
 def install_shelf():
     import pose_estimation.sourcecode.setup.add_shelves
+    import maya_scripts.setup.built_matrix_rigging_tool_shelf
 
 def show_results():
     ratios = (30, 200)

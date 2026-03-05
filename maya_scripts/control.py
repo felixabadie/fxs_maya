@@ -1,11 +1,11 @@
 import os
 import json
-import utils
+from maya_scripts import utils
 import logging
 from enum import Enum
 import pymel.core as pm
-from utilities import colorize
-from prox_node_setup.generated_nodes import *
+from maya_scripts.utilities import colorize
+from maya_scripts.prox_node_setup.generated_nodes import *
 #from maya import OpenMaya as om
 
 

@@ -1,6 +1,6 @@
 import json
 import pymel.core as pm
-from prox_node_setup.generated_nodes import *
+from maya_scripts.prox_node_setup.generated_nodes import *
 
 def colorize(transform:pm.nodetypes.Transform, color=[1, 0, 0]):
     
