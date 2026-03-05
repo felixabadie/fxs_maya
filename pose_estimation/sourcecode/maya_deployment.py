@@ -123,7 +123,7 @@ def ensure_dir(path: Path):
 class PaintWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setMinimumSize(1024, 1024)
+        self.setMinimumSize(512, 512)
         self.setMouseTracking(True)
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
 
