@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 import sys
 import importlib
-import site
+from site import addsitedir
 from maya.OpenMaya import MGlobal as _MGlobal
 
 
@@ -27,6 +27,9 @@ SETUP_KEY = "CG_SCRIPTS_PATH"
 BACHELOR_TOOL_DIR = f"{MAIN_PATH}/pose_estimation/sourcecode"
 SCRIPTS_DIR = f"{MAIN_PATH}/maya_scripts"
 
+site_packages_dir="C:\\Users\\Felix\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages"
+
+addsitedir(site_packages_dir)
 sys.path.append(str(CAPITO_PATH))
 
 import pymel.core as pm
