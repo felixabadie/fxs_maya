@@ -14,7 +14,7 @@ com_color = [0, 0.85, 0]
 
 class Spine:
     def __init__(
-            self, name:str, com_guide_pos:tuple = (0, 0, 0), hip_guide_pos:tuple = (0, 0, 0), 
+            self, name:str = "spine", com_guide_pos:tuple = (0, 0, 0), hip_guide_pos:tuple = (0, 0, 0), 
             mid_guide_pos:tuple = (0, 0, 0), chest_guide_pos:tuple = (0, 0, 0), settings_guide_pos:tuple = (0, 0, 0)
     ):
         

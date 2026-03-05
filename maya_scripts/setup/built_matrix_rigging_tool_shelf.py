@@ -8,6 +8,8 @@ from pathlib import Path
 MAYA_SCRIPTS_PATH = Path(__file__).parent.parent
 MODULES_PATH = MAYA_SCRIPTS_PATH / "rig_module"
 
+ICONS_PATH = MAYA_SCRIPTS_PATH / "setup/images"
+
 def create_shelf():
     try:
         topShelf = mel.eval('$tmp = $gShelfTopLevel')
@@ -37,11 +39,16 @@ def create_shelf():
         py_spine_module_cmd = "from maya_scripts.rig_module import spine; spine.Spine()"
         #py_biped_module_cmd = "from maya_scripts.rig_module import full_body_test; full_body_test"
 
+        root_icon = ICONS_PATH / "root.png"
+        limb_icon = ICONS_PATH / "limb.png"
+        leg_icon = ICONS_PATH / "leg.png"
+        spine_icon = ICONS_PATH / "spine.png"
+
         cmds.shelfButton(
             parent=shelf_name,
             command=py_root_module_cmd,
             sourceType="python",
-            image=None,
+            image=root_icon,
             label="root_module",
             annotation="Create Root Module"
         )
@@ -50,7 +57,7 @@ def create_shelf():
             parent=shelf_name,
             command=py_limb_module_cmd,
             sourceType="python",
-            image=None,
+            image=limb_icon,
             label="limb_module",
             annotation="Create Limb Module"
         )
@@ -59,7 +66,7 @@ def create_shelf():
             parent=shelf_name,
             command=py_leg_module_cmd,
             sourceType="python",
-            image=None,
+            image=leg_icon,
             label="LimbModule",
             annotation="Create Leg Module"
         )
@@ -68,7 +75,7 @@ def create_shelf():
             parent=shelf_name,
             command=py_spine_module_cmd,
             sourceType="python",
-            image=None,
+            image=spine_icon,
             label="SpineModule",
             annotation="Create Spine Module"
         )

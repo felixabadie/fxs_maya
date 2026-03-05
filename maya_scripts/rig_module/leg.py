@@ -1,7 +1,7 @@
 import json
 from maya_scripts import control
 import pymel.core as pm
-from maya_scripts.prox_node_setup.generated_nodes import *
+from prox_node_setup.generated_nodes import *
 from maya_scripts.utilities import create_guide, colorize, create_groups, add_pins_to_ribbon, add_pins_to_ribbon_uv, create_groups_
 
 guide_color = [1, 1, 1]
