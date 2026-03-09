@@ -1,9 +1,23 @@
 import json
 from maya_scripts import control
-#import control
 import pymel.core as pm
 from maya_scripts.prox_node_setup.generated_nodes import *
-from maya_scripts.utilities import create_guide, colorize, create_groups, add_pins_to_ribbon, add_pins_to_ribbon_uv, create_groups_
+from maya_scripts.utilities import (
+    create_guide, 
+    create_groups,
+    create_ik_fk_blend, 
+    setup_visibility_controls, 
+    setup_ribbon_system, 
+    rebuild_nurbsPlane, 
+    add_pin_joints, 
+    extract_matrix_axes, 
+    create_fourByFourMatrix, 
+    remove_main_scale, 
+    create_pom,
+    hierarchy_prep,
+    lock_ctrl_attrs, 
+    create_ik_solver_setup
+)
 
 guide_color = [1, 1, 1]
 pin_color = [1, 1, 0.26]
@@ -14,12 +28,14 @@ com_color = [0, 0.85, 0]
 
 class Spine:
     def __init__(
-            self, name:str = "spine", bin_jnts=20, com_guide_pos:tuple = (0, 0, 0), hip_guide_pos:tuple = (0, 0, 0), 
+            self, name:str = "spine", bind_jnts=20, com_guide_pos:tuple = (0, 0, 0), hip_guide_pos:tuple = (0, 0, 0), 
             mid_guide_pos:tuple = (0, 0, 0), chest_guide_pos:tuple = (0, 0, 0), settings_guide_pos:tuple = (0, 0, 0)
     ):
         
         self.name = name
         self.groups = create_groups(rig_module_name=self.name)
+
+        self.bind_jnts = bind_jnts
 
         self.parent_input = transform(name=f"{self.name}_parent_input")
         self.parentGuide_input = transform(name=f"{self.name}_parentGuide_input")
@@ -65,7 +81,7 @@ class Spine:
         self.settings_ctrl.node.addAttr(attr="ribbon", niceName="RIBBON", attributeType="enum", enumName="----------", defaultValue=0, hidden=False, keyable=True)
         self.settings_ctrl.node.addAttr(attr="show_additional_ribbon_ctrl", attributeType="bool", defaultValue=0, hidden=False, keyable=True)
         self.settings_ctrl.node.addAttr(attr="visibility_grps", niceName="VISIBILITY", attributeType="enum", enumName="----------", hidden=False, keyable=True)
-        self._setup_visibility_controls()
+        setup_visibility_controls(settings_ctrl=self.settings_ctrl, groups=self.groups)
 
         pm.setAttr(self.settings_ctrl.node.ribbon, lock=True)
         pm.setAttr(self.settings_ctrl.node.visibility_grps, lock=True)
@@ -138,12 +154,12 @@ class Spine:
         all_hierarchies = {}
 
         for key, item in hierarchies.items():
-            main_hierarchy = self._hierarchy_prep(name=item["name"], guide=item["guide"], parent=item["parent"], parentGuide=item["parentGuide"])
+            main_hierarchy = hierarchy_prep(module_name=self.name, name=item["name"], guide=item["guide"], parent=item["parent"], parentGuide=item["parentGuide"])
             pm.connectAttr(f"{main_hierarchy['wm'].node}.matrixSum", f"{self.name}_{item['name']}_ctrl.offsetParentMatrix")
 
             all_hierarchies[item["name"]] = main_hierarchy
 
-        settings_ctrl_hierarchy = self._hierarchy_prep(name="settings", guide=settings_guide.worldMatrix[0], 
+        settings_ctrl_hierarchy = hierarchy_prep(module_name=self.name, name="settings", guide=settings_guide.worldMatrix[0], 
                                                        parent=com_ctrl.worldMatrix[0], parentGuide=com_guide.worldInverseMatrix[0])
         
         pm.connectAttr(settings_ctrl_hierarchy["wm"].matrixSum, self.settings_ctrl.offsetParentMatrix)
@@ -229,7 +245,9 @@ class Spine:
         for roundness_ctrl in [mid_start_ctrl, mid_end_ctrl]:
             pm.connectAttr(self.settings_ctrl.node.show_additional_ribbon_ctrl, roundness_ctrl.visibility)
 
-        curve_dict = self._setup_ribbon_system(
+        curve_dict = setup_ribbon_system(
+            module_name=self.name,
+            groups=self.groups,
             hip_ctrl=hip_localMatrix.outputMatrix,
             hip_tangent=hip_tangent_ctrl.worldMatrix[0],
             mid_start=mid_start_ctrl.worldMatrix[0],
@@ -262,12 +280,18 @@ class Spine:
 
         pm.connectAttr(ribbon_loft.outputSurface, old_ribbonShape.create, force=True)
 
-        ribbon, ribbonShape = self._rebuild_nurbsPlane(input_plane=old_ribbonShape, spans_U=60, spans_V=4, degree_U=1, degree_V=3)
+        ribbon, ribbonShape = rebuild_nurbsPlane(
+            module_name=self.name,
+            input_plane=old_ribbonShape, 
+            spans_U=60, 
+            spans_V=4, 
+            degree_U=1, 
+            degree_V=3)
         
         ribbon_pin_grp = transform(name=f"{self.name}_ribbon_pin_grp")
         ribbon_joints_grp = transform(name=f"{self.name}_ribbon_joints_grp")
 
-        ribbon_pins, ribbon_joints = self._add_pin_joints(name="ribbon", ribbon=ribbon, number_of_pins=bin_jnts, scale_parent=com_ctrl.worldMatrix[0])
+        ribbon_pins, ribbon_joints = add_pin_joints(module_name=self.name, name="ribbon", ribbon=ribbon, number_of_pins=bind_jnts, scale_parent=com_ctrl.worldMatrix[0])
         
         for pin, jnt in zip(ribbon_pins, ribbon_joints):
             pm.parent(pin, ribbon_pin_grp.node)
@@ -298,139 +322,6 @@ class Spine:
 
         for IK_c in [hip_IK_ctrl, mid_IK_ctrl, chest_IK_ctrl]:
             pm.connectAttr(self.settings_ctrl.node.use_IK, IK_c.visibility)
-
-    def _setup_visibility_controls(self):
-        vis_mapping = {
-            "showGuides": "guides",
-            "showCtrl": "controls",
-            "showRigNodes": "rigNodes",
-            "showJoints": "joints",
-            "showProxyGeo": "geo",
-            "showHelpers": "helpers"
-        }
-        for attr_name, group_name in vis_mapping.items():
-            self.settings_ctrl.node.addAttr(attr=f"{attr_name}", attributeType="bool", defaultValue=1, hidden=False, keyable=True)
-            pm.connectAttr(f"{self.settings_ctrl.node}.{attr_name}", self.groups[group_name].node.visibility)
-            self.settings_ctrl.node.setAttr(attr_name, keyable=False, channelBox=True)
-
-    def _create_pom(self, name:str, source_matrix, parentGuide_input):
-        """Creates a multMatrix node as a Parent ofset matrix."""
-        pom = multMatrix(name=f"{self.name}_{name}_POM")
-        pm.connectAttr(source_matrix, pom.matrixIn[0])
-        pm.connectAttr(parentGuide_input, pom.matrixIn[1])
-        return pom
-
-    def _lock_ctrl_attrs(self, ctrl, attrs_to_lock):
-        for attr in attrs_to_lock:
-            pm.setAttr(f"{ctrl.node}.{attr}", lock=True)
-            pm.setAttr(f"{ctrl.node}.{attr}", keyable=False)
-            pm.setAttr(f"{ctrl.node}.{attr}", channelBox=False)
-
-    def _hierarchy_prep(self, name, guide, parent, parentGuide):
-        outputs = {}
-        outputs["pom"] = self._create_pom(name=name, source_matrix=guide, parentGuide_input=parentGuide)
-        outputs["wm"] = multMatrix(name=f"{self.name}_{name}_WM")
-        outputs["pom"].matrixSum >> outputs["wm"].matrixIn[0]
-        pm.connectAttr(parent, outputs["wm"].matrixIn[1])
-        return outputs
-    
-    def _get_local_ribbon_pin_position(self, pos_name):
-        positions = {"top": (0, 0, 0.5), "middle": (0, 0, 0), "down": (0, 0, -0.5)}
-        return positions.get(pos_name, (0, 0, 0))
-
-    def _setup_ribbon_system(self, hip_ctrl, hip_tangent, mid_start, mid_ctrl, mid_end, chest_tangent, chest_ctrl):
-        pin_grp = transform(name=f"{self.name}_nurbsPin_grp")
-
-        sections = {
-            name: {"parent_matrix": matrix}
-            for name, matrix in [
-                ("hip", hip_ctrl), ("hip_tangent", hip_tangent), 
-                ("mid_start", mid_start), ("mid", mid_ctrl), ("mid_end", mid_end),
-                ("chest_tangent", chest_tangent), ("chest", chest_ctrl)
-            ]
-        }
-
-        curve_points = {'top': [], 'middle': [], 'down': []}
-
-        for section_name, config in sections.items():
-            for height in ["top", "middle", "down"]:
-                pin = create_guide(name=f"{self.name}_{section_name}_{height}_ribbon_pin", color=pin_color, position=self._get_local_ribbon_pin_position(height))
-
-                tfm = translationFromMatrix(name=f"{self.name}_{section_name}_{height}_ribbon_pin_tFM")
-                pm.connectAttr(pin.worldMatrix[0], tfm.input_)
-                pm.connectAttr(config["parent_matrix"], pin.offsetParentMatrix)
-                pm.parent(pin.node, pin_grp.node)
-                pm.parent(pin_grp.node, self.groups["rigNodes"].node)
-                pin_grp.visibility.set(0)
-                curve_points[height].append(tfm)
-
-        return self._create_bezier_curves(curve_points)
-
-    def _create_bezier_curves(self, curve_points:dict):
-
-        ribbon_curves = {}
-
-        for crv, points in curve_points.items():
-            input_nodes = []
-            positions = []
-            for index, p in enumerate(points):
-                if index == 0 or index == len(points) - 1:
-                    input_nodes.append(p)
-                    input_nodes.append(p)
-                    positions.append(pm.getAttr(p.node.output))
-                    positions.append(pm.getAttr(p.node.output))
-                else:
-                    input_nodes.append(p)
-                    positions.append(pm.getAttr(p.node.output))
-            
-            temp_bezier_curve = pm.curve(point=positions, bezier=True, name=f"temp_{crv}_curve")
-            ribbon_curves[f"{crv}_curve"] = transform(name=f"{self.name}_{crv}_bezier_curve")
-            ribbon_curves[f"{crv}_curve"].visibility.set(0)
-            shapes = pm.listRelatives(temp_bezier_curve, shapes=True, fullPath=True)
-            pm.parent(shapes, ribbon_curves[f"{crv}_curve"].node, add=True, shape=True)
-            pm.delete(temp_bezier_curve)
-
-            for index, node in enumerate(input_nodes):
-                pm.connectAttr(node.output, ribbon_curves[f"{crv}_curve"].node.controlPoints[index])         
-
-        return ribbon_curves
-
-    def _rebuild_nurbsPlane(self, input_plane, spans_U:int, spans_V:int, degree_U, degree_V):
-        rebSurface = rebuildSurface(name=f"{self.name}_{input_plane.getName()}_rebuildSurface")
-        pm.connectAttr(input_plane.worldSpace[0], rebSurface.inputSurface)
-        rebSurface.spansU.set(spans_U)
-        rebSurface.spansV.set(spans_V)
-        rebSurface.degreeU.set(degree_U)
-        rebSurface.degreeV.set(degree_V)
-
-        pm.rename(input_plane, newname=f"{self.name}_oldRibbon")
-        pm.parent(input_plane, self.groups["rigNodes"].node)
-
-        input_plane.visibility.set(0)
-        newPlane = pm.nurbsPlane(name=f"{self.name}_newRibbon")[0]
-        newPlaneShape = newPlane.getShape()
-        pm.connectAttr(rebSurface.outputSurface, newPlaneShape.create, force=True)
-
-        newPlane.overrideEnabled.set(1)
-        newPlane.overrideDisplayType.set(1)
-
-        return newPlane, newPlaneShape
-    
-    def _add_pin_joints(self, name, ribbon, number_of_pins, scale_parent):
-            jnt_list = []
-
-            pin_list = add_pins_to_ribbon_uv(f"{self.name}", ribbon, number_of_pins)
-            scaleFM = scaleFromMatrix(name=f"{self.name}_scaleFM")
-            pm.connectAttr(scale_parent, scaleFM.input_)
-            for index, pin in enumerate(pin_list):
-                jnt = joint(name=f"{name}_{index}_bnd_jnt")
-                pm.connectAttr(scaleFM.output, jnt.scale)
-                pm.makeIdentity(jnt.node, apply=True, t=0, r=1, s=0, n=0, pn=True)
-                pm.xform(jnt.node, translation=(0, 0, 0))
-                pm.connectAttr(pin.worldMatrix[0], jnt.offsetParentMatrix)
-                jnt_list.append(jnt)
-
-            return pin_list, jnt_list
 
 """a = Spine(name="spine", com_guide_pos=(0, 2, 0), hip_guide_pos=(0, 0, 0), 
           mid_guide_pos=(0, 0, 0), chest_guide_pos=(0, 16, 0), settings_guide_pos=(6, 0, 0))"""
