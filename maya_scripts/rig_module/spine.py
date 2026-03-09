@@ -10,13 +10,8 @@ from maya_scripts.utilities import (
     setup_ribbon_system, 
     rebuild_nurbsPlane, 
     add_pin_joints, 
-    extract_matrix_axes, 
-    create_fourByFourMatrix, 
-    remove_main_scale, 
-    create_pom,
     hierarchy_prep,
-    lock_ctrl_attrs, 
-    create_ik_solver_setup
+    TextFieldHelper
 )
 
 guide_color = [1, 1, 1]
@@ -27,15 +22,33 @@ spine_FK_color = [0.19, 0.84, 0.62]
 com_color = [0, 0.85, 0]
 
 class Spine:
-    def __init__(
-            self, name:str = "spine", bind_jnts=20, com_guide_pos:tuple = (0, 0, 0), hip_guide_pos:tuple = (0, 0, 0), 
-            mid_guide_pos:tuple = (0, 0, 0), chest_guide_pos:tuple = (0, 0, 0), settings_guide_pos:tuple = (0, 0, 0)
-    ):
+    def __init__(self):
         
-        self.name = name
-        self.groups = create_groups(rig_module_name=self.name)
+        self.win_id = "fxs_spine_rigging_win"
+        
+        if pm.window(self.win_id, query=True, exists=True):
+            pm.deleteUI(self.win_id)
 
-        self.bind_jnts = bind_jnts
+        with pm.window(self.win_id, title="Spine Rigging Module") as win:
+            with pm.columnLayout(adj=True):
+                self.name = TextFieldHelper("Spine name: ")
+                self.bind_jnts = TextFieldHelper("Amount bind joints: ")
+                self.parent_module = TextFieldHelper("Parent Module: ")
+                pm.text(label="Please fill out the following fields or select the corresponding components and press: OK")
+                
+                with pm.horizontalLayout():
+                    pm.button(label="Cancel")
+                    pm.button(label="OK", command=self.execute)
+
+    def execute(self):
+        
+        com_guide_pos=(0, 2, 0)
+        hip_guide_pos=(0, 0, 0)
+        mid_guide_pos=(0, 0, 0)
+        chest_guide_pos=(0, 16, 0)
+        settings_guide_pos=(6, 0, 0)
+        
+        self.groups = create_groups(rig_module_name=self.name)
 
         self.parent_input = transform(name=f"{self.name}_parent_input")
         self.parentGuide_input = transform(name=f"{self.name}_parentGuide_input")
@@ -291,7 +304,7 @@ class Spine:
         ribbon_pin_grp = transform(name=f"{self.name}_ribbon_pin_grp")
         ribbon_joints_grp = transform(name=f"{self.name}_ribbon_joints_grp")
 
-        ribbon_pins, ribbon_joints = add_pin_joints(module_name=self.name, name="ribbon", ribbon=ribbon, number_of_pins=bind_jnts, scale_parent=com_ctrl.worldMatrix[0])
+        ribbon_pins, ribbon_joints = add_pin_joints(module_name=self.name, name="ribbon", ribbon=ribbon, number_of_pins=self.bind_jnts, scale_parent=com_ctrl.worldMatrix[0])
         
         for pin, jnt in zip(ribbon_pins, ribbon_joints):
             pm.parent(pin, ribbon_pin_grp.node)

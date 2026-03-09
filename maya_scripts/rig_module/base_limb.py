@@ -15,7 +15,8 @@ from maya_scripts.utilities import (
     remove_main_scale, 
     create_pom, 
     lock_ctrl_attrs, 
-    create_ik_solver_setup
+    create_ik_solver_setup,
+    TextFieldHelper
 )
 
 guide_color = [1, 1, 1]
@@ -28,6 +29,23 @@ class Limb():
     def __init__(self, main_module:str, parent_module:str , limb_type:str, limb_side:str, bind_jnts=10, upper_guide_pos:tuple = (2, 0, 0), lower_guide_pos:tuple = (0, 0, 0), 
                  hand_guide_pos:tuple = (12, 0, 0), elbowLock_guide_pos:tuple = (7, 0, -4), settings_guide_pos:tuple = (4, 4, -4), 
                  upper_guide_rot:tuple = (0, 0, 0), fk_color:list = [0, 0, 1], ik_color:list = [0, 0.85, 0.83]):
+        
+        self.win_id = "fxs_limb_rigging_win"
+
+        if pm.window(self.win_id, query=True, exists=True):
+            pm.deleteUI(self.win_id)
+
+        with pm.window(self.win_id, title="Arm or basic Limb Rigging Module"):
+            with pm.columnLayout(adj=True):
+                self.limb_type = TextFieldHelper("Module name: ")
+                self.limb_side = TextFieldHelper("Limb side ('L' or 'R'): ")
+                self.bind_jnts = TextFieldHelper("Amount bind joints: ")
+                self.root_module = TextFieldHelper("Rig root module: ")
+                self.parent_module = TextFieldHelper("parent module: ")
+
+        
+
+        
         """
         Creates a limb-rig-module based on the tutorials of Jean Paul Tossings. The module can be adapted thanks to guides and be repositioned at any time.
         The Module contains a math-based IK-Solver, an IK/FK Blend, manually scalable segments, softIK to prevent snapping and a ribbon.
@@ -1225,38 +1243,7 @@ class Clavicle:
             except:
                 pass
 
-    def _create_fourByFourMatrix(self, name, inputs = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]):
-        """Creates fourByFourMatrix node and connects the inputs
-        
-        in00, in01, in02, in03 \n
-        in10, in11, in12, in13 \n
-        in20, in21, in22, in23 \n
-        in30, in31, in32, in33
-        """ 
-        fbfM = fourByFourMatrix(name=f"{self.name}_{name}")
-        for i, input in enumerate(inputs):
-            if input is not None:
-                for j, plug in enumerate(input):
-                    if plug is not None:
-                        if isinstance(plug, float | int):
-                            pm.setAttr(f"{fbfM.node}.in{i}{j}", plug)
-                        else:
-                            pm.connectAttr(plug, f"{fbfM.node}.in{i}{j}")
-        return fbfM
-
-    def _remove_main_scale(self, name, world_matrix, main_input):
-        """Creates am multMatrix node and multiplies its first input 
-        with the worldInverseMatrix of the mainInput to remove its scale"""
-        no_main_scale = multMatrix(name=f"{self.name}_{name}")
-        pm.connectAttr(world_matrix, no_main_scale.matrixIn[0])
-        pm.connectAttr(main_input, no_main_scale.matrixIn[1])
-        return no_main_scale
-        
-    def _create_pom(self, name:str, source_matrix, parentGuide_input):
-        """Creates a multMatrix node as a Parent ofset matrix."""
-        pom = multMatrix(name=f"{self.name}_{name}")
-        pm.connectAttr(source_matrix, pom.matrixIn[0])
-        pm.connectAttr(parentGuide_input, pom.matrixIn[1])
-        return pom
+    def execute(self):
+        pass
 
 #b = Clavicle(parent_module="root", limb_type="clavicle", limb_side="L", start_guide_pos=(1, 8, 0), end_guide_pos=(2, 9, 0), clavicle_ctrl_color=[0, 0, 1])

@@ -553,3 +553,19 @@ def match_transforms(source_obj, target_obj, **kwargs):
     LOGGER.info(f"Matching transforms of {source_obj} to {target_obj}")
     constraint = pm.parentConstraint(source_obj, target_obj, **kwargs)
     pm.delete(constraint)
+
+
+class TextFieldHelper:
+    def __init__(self, label, buttonLabel="Set", text="Not set"):
+        self.control = pm.textFieldButtonGrp(
+            label=label, buttonLabel=buttonLabel, text=text,
+            bc=self.set_text
+        ) # PEP8
+                
+    def set_text(self):
+        sel = pm.selected()
+        if not sel:
+            pm.warning("Warning")
+            return
+        self.control.setText(sel[0].name())
+        self.obj = sel[0]
