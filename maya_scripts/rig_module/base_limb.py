@@ -2,7 +2,21 @@ import json
 from maya_scripts import control
 import pymel.core as pm
 from maya_scripts.prox_node_setup.generated_nodes import *
-from maya_scripts.utilities import create_guide, colorize, create_groups, add_pins_to_ribbon, add_pins_to_ribbon_uv, create_groups_
+from maya_scripts.utilities import (
+    create_guide, 
+    create_groups,
+    create_ik_fk_blend, 
+    setup_visibility_controls, 
+    setup_ribbon_system, 
+    rebuild_nurbsPlane, 
+    add_pin_joints, 
+    extract_matrix_axes, 
+    create_fourByFourMatrix, 
+    remove_main_scale, 
+    create_pom, 
+    lock_ctrl_attrs, 
+    create_ik_solver_setup
+)
 
 guide_color = [1, 1, 1]
 pin_color = [1, 1, 0.26]
@@ -93,7 +107,7 @@ class Limb():
         self.settings_ctrl.node.addAttr(attr="enableSoftIk", niceName="Enable Soft IK", attributeType="bool", defaultValue=0, hidden=False, keyable=True)
         self.settings_ctrl.node.addAttr(attr="softIkCurve", niceName="Soft IK Curve", attributeType="enum", enumName="custom_curve:smoothstep_curve:cubic_curve", defaultValue=0, hidden=False, keyable=True)
         self.settings_ctrl.node.addAttr(attr="visibility_grps", niceName="VISIBILITY", attributeType="enum", enumName="----------", defaultValue=0, hidden=False, keyable=True)
-        self._setup_visibility_controls()
+        setup_visibility_controls(settings_ctrl=self.settings_ctrl, groups=self.groups)
 
         for attr in ["custom", "ribbon", "soft_IK", "visibility_grps"]:
             pm.setAttr(f"{self.settings_ctrl.node}.{attr}", lock=True)
@@ -111,7 +125,7 @@ class Limb():
         pm.connectAttr(parent_module_input_noScaleM.outputMatrix, parent_module_input_WM.matrixIn[0])
         pm.connectAttr(main_input.offsetParentMatrix, parent_module_input_WM.matrixIn[1])
         
-        settings_POM = self._create_pom(name="settings_POM", source_matrix = settings_guide.worldMatrix[0], parentGuide_input = parent_moduleGuide_input.worldInverseMatrix[0])
+        settings_POM = create_pom(module_name=self.name, name="settings_POM", source_matrix = settings_guide.worldMatrix[0], parentGuide_input = parent_moduleGuide_input.worldInverseMatrix[0])
 
         settings_WM = multMatrix(name=f"{self.name}_settings_WM")
         pm.connectAttr(settings_POM.matrixSum, settings_WM.matrixIn[0])
@@ -161,10 +175,10 @@ class Limb():
         hand_IK_ctrl = control.create(ctrl_type="box", degree=1, name="hand_IK_ctrl", size=[2, 2, 2], color=ik_color)
 
         elbow_IK_ctrl = control.create(ctrl_type="pyramid", degree=1, name=f"{self.name}_elbow_IK_ctrl", size=[0.5, 6, 0.5], color=ik_color)
-        self._lock_ctrl_attrs(elbow_IK_ctrl, ["translateX", "translateY", "translateZ", "rotateY", "rotateZ", "scaleX", "scaleY", "scaleZ"])
+        lock_ctrl_attrs(elbow_IK_ctrl, ["translateX", "translateY", "translateZ", "rotateY", "rotateZ", "scaleX", "scaleY", "scaleZ"])
 
         self.elbowLock_IK_ctrl = control.create(ctrl_type="box", degree=1, name="elbowLock_IK_ctrl", size=[1, 1, 1], color=ik_color)
-        self._lock_ctrl_attrs(self.elbowLock_IK_ctrl, attrs_to_lock=["rotateX", "rotateY", "rotateZ", "scaleX", "scaleY", "scaleZ"])
+        lock_ctrl_attrs(self.elbowLock_IK_ctrl, attrs_to_lock=["rotateX", "rotateY", "rotateZ", "scaleX", "scaleY", "scaleZ"])
 
         self.elbowLock_IK_ctrl.node.addAttr(attr="Lock", attributeType="float", defaultValue=0, minValue=0, maxValue=1, hidden=False, keyable=True)
         self.elbowLock_IK_ctrl.node.addAttr(attr="space", niceName="Space", attributeType="enum", enumName=f"{main_module}:worldSpace", defaultValue=0, hidden=False, keyable=True)
@@ -203,8 +217,8 @@ class Limb():
         upper_FK_guide_outWIM = inverseMatrix(name=f"{self.name}_upper_FK_guide_outWIM")
         pm.connectAttr(self.upper_FK_guide_outWM.outputMatrix, upper_FK_guide_outWIM.inputMatrix)
 
-        upper_base_POM = self._create_pom(
-            name="upper_base_POM", source_matrix = self.upper_FK_guide_outWM.outputMatrix, parentGuide_input = parent_moduleGuide_input.worldInverseMatrix[0])
+        upper_base_POM = create_pom(
+            module_name=self.name, name="upper_base_POM", source_matrix = self.upper_FK_guide_outWM.outputMatrix, parentGuide_input = parent_moduleGuide_input.worldInverseMatrix[0])
 
         upper_baseWM = multMatrix(name=f"{self.name}_upper_baseWM")
         pm.connectAttr(upper_base_POM.matrixSum, upper_baseWM.matrixIn[0])
@@ -223,8 +237,8 @@ class Limb():
         pm.connectAttr(upper_baseWM_noScaleM.outputMatrix, upper_WM_test.matrixIn[0])
         pm.connectAttr(main_input.offsetParentMatrix, upper_WM_test.matrixIn[1])
 
-        upper_FK_ctrl_mainSpacePOM = self._create_pom(
-            name="upper_FK_ctrl_mainSpacePOM", source_matrix = self.upper_FK_guide_outWM.outputMatrix, parentGuide_input = mainGuide_input.worldInverseMatrix[0])
+        upper_FK_ctrl_mainSpacePOM = create_pom(
+            module_name=self.name, name="upper_FK_ctrl_mainSpacePOM", source_matrix = self.upper_FK_guide_outWM.outputMatrix, parentGuide_input = mainGuide_input.worldInverseMatrix[0])
 
         hand_IK_ctrl_mainSpaceEnable = equal(name=f"{self.name}_hand_IK_ctrl_{main_module}SpaceEnable")
         pm.connectAttr(self.settings_ctrl.node.space, hand_IK_ctrl_mainSpaceEnable.input1)
@@ -257,11 +271,12 @@ class Limb():
         lower_FK_guide_outWM.secondaryMode.set(2)
         lower_FK_guide_outWM.secondaryTargetVector.set(0, 0, -1)
 
-        lower_FK_ctrl_POM = self._create_pom(name="lower_FK_ctrl_POM", source_matrix = lower_FK_guide_outWM.outputMatrix, parentGuide_input = upper_FK_guide_outWIM.outputMatrix)
+        lower_FK_ctrl_POM = create_pom(module_name=self.name, name="lower_FK_ctrl_POM", source_matrix = lower_FK_guide_outWM.outputMatrix, parentGuide_input = upper_FK_guide_outWIM.outputMatrix)
 
-        lower_axes = self._extract_matrix_axes(name="lower_FK_ctrl_POM", input=lower_FK_ctrl_POM.matrixSum)
+        lower_axes = extract_matrix_axes(module_name=self.name, name="lower_FK_ctrl_POM", input=lower_FK_ctrl_POM.matrixSum)
 
-        lower_FK_ctrl_POM_manualScale = self._create_fourByFourMatrix(
+        lower_FK_ctrl_POM_manualScale = create_fourByFourMatrix(
+            module_name=self.name,
             name="lower_FK_ctrl_POM_manualScale",
             inputs=[
                 [lower_axes["X"].outputX, lower_axes["X"].outputY, lower_axes["X"].outputZ, lower_axes["X"].outputW],
@@ -289,11 +304,12 @@ class Limb():
         lower_FK_guide_outWIM = inverseMatrix(name=f"{self.name}_lower_guide_outWIM")
         pm.connectAttr(lower_FK_guide_outWM.outputMatrix, lower_FK_guide_outWIM.inputMatrix)
 
-        hand_FK_ctrl_POM = self._create_pom(name="hand_FK_ctrl_POM", source_matrix = self.hand_FK_guide_outWM.outputMatrix, parentGuide_input = lower_FK_guide_outWIM.outputMatrix)
+        hand_FK_ctrl_POM = create_pom(module_name=self.name, name="hand_FK_ctrl_POM", source_matrix = self.hand_FK_guide_outWM.outputMatrix, parentGuide_input = lower_FK_guide_outWIM.outputMatrix)
 
-        hand_axes = self._extract_matrix_axes(name="hand_FK_ctrl_POM", input=hand_FK_ctrl_POM.matrixSum)
+        hand_axes = extract_matrix_axes(module_name=self.name, name="hand_FK_ctrl_POM", input=hand_FK_ctrl_POM.matrixSum)
 
-        hand_FK_ctrl_POM_manualScale = self._create_fourByFourMatrix(
+        hand_FK_ctrl_POM_manualScale = create_fourByFourMatrix(
+            module_name=self.name,
             name="hand_FK_ctrl_POM_manualScale",
             inputs=[
                 [hand_axes["X"].outputX, hand_axes["X"].outputY, hand_axes["X"].outputZ, hand_axes["X"].outputW],
@@ -315,13 +331,13 @@ class Limb():
 
         #IK hand
 
-        hand_IK_ctrl_POM = self._create_pom(name="hand_IK_ctrl_POM", source_matrix = self.hand_FK_guide_outWM.outputMatrix, parentGuide_input = parent_moduleGuide_input.worldInverseMatrix[0])
+        hand_IK_ctrl_POM = create_pom(module_name=self.name, name="hand_IK_ctrl_POM", source_matrix = self.hand_FK_guide_outWM.outputMatrix, parentGuide_input = parent_moduleGuide_input.worldInverseMatrix[0])
 
         hand_IK_ctrl_parent_moduleSpaceWM =  multMatrix(name=f"{self.name}_hand_IK_ctrl_{parent_module}SpaceWM")
         pm.connectAttr(hand_IK_ctrl_POM.matrixSum, hand_IK_ctrl_parent_moduleSpaceWM.matrixIn[0])
         pm.connectAttr(parent_module_input_WM.matrixSum, hand_IK_ctrl_parent_moduleSpaceWM.matrixIn[1])
 
-        hand_IK_ctrl_mainSpacePOM = self._create_pom(name="hand_IK_ctrl_mainSpacePOM", source_matrix = self.hand_FK_guide_outWM.outputMatrix, parentGuide_input = mainGuide_input.worldInverseMatrix[0])
+        hand_IK_ctrl_mainSpacePOM = create_pom(module_name=self.name, name="hand_IK_ctrl_mainSpacePOM", source_matrix = self.hand_FK_guide_outWM.outputMatrix, parentGuide_input = mainGuide_input.worldInverseMatrix[0])
         
         self.hand_IK_ctrl_WM = parentMatrix(f"{self.name}_hand_IK_ctrl_WM")
         pm.connectAttr(hand_IK_ctrl_parent_moduleSpaceWM.matrixSum, self.hand_IK_ctrl_WM.inputMatrix)
@@ -337,13 +353,13 @@ class Limb():
 
         #IK elbow
 
-        elbow_IK_guide_POM = self._create_pom(name="elbow_IK_guide_POM", source_matrix = self.orientPlane_guide.outputMatrix, parentGuide_input = mainGuide_input.worldInverseMatrix[0])
+        elbow_IK_guide_POM = create_pom(module_name=self.name, name="elbow_IK_guide_POM", source_matrix = self.orientPlane_guide.outputMatrix, parentGuide_input = mainGuide_input.worldInverseMatrix[0])
 
         elbow_IK_clavicleSpaceWM = multMatrix(name=f"{self.name}_IK_clavicleSpaceWM")
         pm.connectAttr(elbow_IK_guide_POM.matrixSum, elbow_IK_clavicleSpaceWM.matrixIn[0])
         pm.connectAttr(main_input.worldMatrix[0], elbow_IK_clavicleSpaceWM.matrixIn[1])
 
-        elbow_IK_mainSpacePOM = self._create_pom(name="elbow_IK_mainSpacePOM", source_matrix=self.orientPlane_guide.outputMatrix, parentGuide_input=mainGuide_input.worldInverseMatrix[0])
+        elbow_IK_mainSpacePOM = create_pom(module_name=self.name, name="elbow_IK_mainSpacePOM", source_matrix=self.orientPlane_guide.outputMatrix, parentGuide_input=mainGuide_input.worldInverseMatrix[0])
 
         self.elbow_IK_baseWM = parentMatrix(name=f"{self.name}_elbow_IK_baseWM")
         pm.connectAttr(elbow_IK_clavicleSpaceWM.matrixSum, self.elbow_IK_baseWM.inputMatrix)
@@ -370,7 +386,7 @@ class Limb():
 
         #IK Elbow Lock
 
-        elbowLock_IK_ctrl_mainSpacePOM = self._create_pom(name="elbowLock_IK_ctrl_mainSpacePOM", source_matrix = self.elbowLock_guide.worldMatrix[0], parentGuide_input = mainGuide_input.worldInverseMatrix[0])
+        elbowLock_IK_ctrl_mainSpacePOM = create_pom(module_name=self.name, name="elbowLock_IK_ctrl_mainSpacePOM", source_matrix = self.elbowLock_guide.worldMatrix[0], parentGuide_input = mainGuide_input.worldInverseMatrix[0])
 
         elbowLock_IK_ctrl_mainSpaceWM = multMatrix(name=f"{self.name}_elbowLock_IK_ctrl_{main_module}SpaceWM")
         pm.connectAttr(elbowLock_IK_ctrl_mainSpacePOM.matrixSum, elbowLock_IK_ctrl_mainSpaceWM.matrixIn[0])
@@ -390,9 +406,9 @@ class Limb():
 
         #IK Prep
 
-        upper_baseWM_noMainScale = self._remove_main_scale(name="upper_baseWM_noMainScale", world_matrix=upper_baseWM.matrixSum, main_input=main_input.worldInverseMatrix[0])
+        upper_baseWM_noMainScale = remove_main_scale(module_name=self.name, name="upper_baseWM_noMainScale", world_matrix=upper_baseWM.matrixSum, main_input=main_input.worldInverseMatrix[0])
 
-        hand_IK_ctrl_noMainScale = self._remove_main_scale(name="hand_IK_ctrl_noMainScale", world_matrix=hand_IK_ctrl.worldMatrix[0], main_input=main_input.worldInverseMatrix[0])
+        hand_IK_ctrl_noMainScale = remove_main_scale(module_name=self.name, name="hand_IK_ctrl_noMainScale", world_matrix=hand_IK_ctrl.worldMatrix[0], main_input=main_input.worldInverseMatrix[0])
 
         current_length = distanceBetween(name=f"{self.name}_current_length")
         pm.connectAttr(upper_baseWM_noMainScale.matrixSum, current_length.inMatrix1)
@@ -435,7 +451,8 @@ class Limb():
 
         #SOFT IK -> Maybe separate in to more functions 
 
-        soft_IK_solver = self._create_ik_solver_setup(
+        soft_IK_solver = create_ik_solver_setup(
+            module_name=self.name,
             name = "softIK", 
             upper_length = upper_length.output, 
             lower_length = lower_length.output, 
@@ -581,7 +598,7 @@ class Limb():
         pm.connectAttr(disable_soft_ik.output, upper_softIK_scaler_enable.input_[0])
         pm.connectAttr(upper_softIK_scaler.output, upper_softIK_scaler_enable.input_[1])
 
-        elbowLock_IK_ctrl_noMainScale = self._remove_main_scale(name="elbowLock_IK_ctrl_noMainScale", world_matrix=self.elbowLock_IK_ctrl.worldMatrix[0], main_input=main_input.worldInverseMatrix[0])
+        elbowLock_IK_ctrl_noMainScale = remove_main_scale(module_name=self.name, name="elbowLock_IK_ctrl_noMainScale", world_matrix=self.elbowLock_IK_ctrl.worldMatrix[0], main_input=main_input.worldInverseMatrix[0])
 
         lower_softIK_scaler_enable = max_(name=f"{self.name}_lower_softIK_scaler_enable")
         pm.connectAttr(disable_soft_ik.output, lower_softIK_scaler_enable.input_[0])
@@ -616,7 +633,8 @@ class Limb():
         pm.connectAttr(lower_lengthScaled.output, lower_elbowLock_lengthSwitch.input_[0])
         pm.connectAttr(elbowLock_IK_lowerLength.distance, lower_elbowLock_lengthSwitch.input_[1])
 
-        ik_solver = self._create_ik_solver_setup(
+        ik_solver = create_ik_solver_setup(
+            module_name=self.name,
             name="IK",
             upper_length = upper_elbowLock_lengthSwitch.output,
             lower_length = lower_elbowLock_lengthSwitch.output,
@@ -677,7 +695,8 @@ class Limb():
         IK_baseWM.secondaryMode.set(2)
         pm.connectAttr(elbow_IK_poleVectorSwitch.output, IK_baseWM.secondaryTargetVector)
 
-        upper_IK_localRotMatrix = self._create_fourByFourMatrix(
+        upper_IK_localRotMatrix = create_fourByFourMatrix(
+            module_name=self.name,
             name="upper_IK_localRotMatrix",
             inputs=[
                 [upper_IK_cosValue.output, upper_IK_sin.output],
@@ -695,7 +714,8 @@ class Limb():
         pm.connectAttr(upper_IK_localRotMatrix.output, upper_IK_WM.matrixIn[0])
         pm.connectAttr(IK_baseWM.outputMatrix, upper_IK_WM.matrixIn[1])
 
-        lower_IK_localRotMatrix = self._create_fourByFourMatrix(
+        lower_IK_localRotMatrix = create_fourByFourMatrix(
+            module_name=self.name,
             name="lower_IK_localRotMatrix",
             inputs=[
                 [lower_IK_cosValue_negated.output, lower_IK_sin_negated.output],
@@ -716,9 +736,10 @@ class Limb():
         pm.connectAttr(hand_IK_ctrl.worldMatrix[0], hand_IK_baseLocalMatrix.matrixIn[0])
         pm.connectAttr(lower_IK_WIM.outputMatrix, hand_IK_baseLocalMatrix.matrixIn[1])
 
-        hand_IK_axes = self._extract_matrix_axes(name="hand_IK_baseLocalMatrix", input=hand_IK_baseLocalMatrix.matrixSum)
+        hand_IK_axes = extract_matrix_axes(module_name=self.name, name="hand_IK_baseLocalMatrix", input=hand_IK_baseLocalMatrix.matrixSum)
 
-        hand_IK_localMatrix = self._create_fourByFourMatrix(
+        hand_IK_localMatrix = create_fourByFourMatrix(
+            module_name=self.name,
             name="hand_IK_localMatrix",
             inputs=[
                 [hand_IK_axes["X"].outputX, hand_IK_axes["X"].outputY, hand_IK_axes["X"].outputZ, hand_IK_axes["X"].outputW],
@@ -739,12 +760,27 @@ class Limb():
         pm.connectAttr(hand_FK_ctrl_POM_manualScale.output, hand_FK_ctrl_outLocalMatrix.matrixIn[1])
 
         blends = {
-            "upper": self._create_ik_fk_blend(
-                "upper_WM", upper_FK_ctrl.worldMatrix[0], upper_IK_WM.matrixSum, self.settings_ctrl.node.useIK),
-            "lower_local": self._create_ik_fk_blend(
-                "lower_localMatrix", lower_FK_ctrl_outLocalMatrix.matrixSum, lower_IK_localRotMatrix.output, self.settings_ctrl.node.useIK),
-            "hand_local": self._create_ik_fk_blend(
-                "hand_localMatrix", hand_FK_ctrl_outLocalMatrix.matrixSum, hand_IK_localMatrix.output, self.settings_ctrl.node.useIK)
+            "upper": create_ik_fk_blend(
+                module_name=self.name, 
+                blend_name="upper_WM", 
+                fk_source=upper_FK_ctrl.worldMatrix[0], 
+                ik_source=upper_IK_WM.matrixSum, 
+                blend_attr=self.settings_ctrl.node.useIK
+                ),
+            "lower_local": create_ik_fk_blend(
+                module_name=self.name,
+                blend_name="lower_localMatrix", 
+                fk_source=lower_FK_ctrl_outLocalMatrix.matrixSum, 
+                ik_source=lower_IK_localRotMatrix.output, 
+                blend_attr=self.settings_ctrl.node.useIK
+                ),
+            "hand_local": create_ik_fk_blend(
+                module_name=self.name,
+                blend_name="hand_localMatrix", 
+                fk_source=hand_FK_ctrl_outLocalMatrix.matrixSum, 
+                ik_source=hand_IK_localMatrix.output, 
+                blend_attr=self.settings_ctrl.node.useIK
+                )
         }
 
         upper_WM = blends["upper"]
@@ -811,7 +847,9 @@ class Limb():
         pm.connectAttr(upper_midpoint_aim.outputMatrix, upper_midpoint_ctrl.offsetParentMatrix)
         pm.connectAttr(lower_midpoint_aim.outputMatrix, lower_midpoint_ctrl.offsetParentMatrix)
 
-        curve_dict = self._setup_ribbon_system(
+        curve_dict = setup_ribbon_system(
+            module_name = self.name,
+            groups = self.groups,
             upper_WM = upper_WM.outputMatrix,
             upper_midpoint_ctrl = upper_midpoint_ctrl.worldMatrix[0],
             lower_start_ribbon_ctrl = lower_start_ribbon_ctrl.worldMatrix[0],
@@ -870,9 +908,21 @@ class Limb():
 
         pm.parent(old_ribbon, self.groups["rigNodes"].node)
 
-        ribbon, ribbon_shape = self._rebuild_nurbsPlane(input_plane=old_ribbonShape, spans_U=60, spans_V=4, degree_U=1, degree_V=3)
+        ribbon, ribbon_shape = rebuild_nurbsPlane(
+            module_name=self.name,
+            groups=self.groups,
+            input_plane=old_ribbonShape, 
+            spans_U=60, 
+            spans_V=4, 
+            degree_U=1, 
+            degree_V=3)
 
-        ribbon_pins, ribbon_joints = self._add_pin_joints(name="ribbon", ribbon=ribbon, number_of_pins=self.bind_jnts, scale_parent=main_input.worldMatrix[0])
+        ribbon_pins, ribbon_joints = add_pin_joints(
+            module_name=self.name,
+            name="ribbon", 
+            ribbon=ribbon, 
+            number_of_pins=self.bind_jnts, 
+            scale_parent=main_input.worldMatrix[0])
 
         ribbon_pin_grp = transform(name=f"{self.name}_ribbon_pin_grp")
         ribbon_joints_grp = transform(name=f"{self.name}_ribbon_joints_grp")
@@ -956,233 +1006,6 @@ class Limb():
                     pm.parent(node, self.groups[group_name].node)
 
 
-    def _create_ik_fk_blend(self, name, fk_source, ik_source, blend_attr):
-        blend = blendMatrix(name=f"{self.name}_{name}")
-        pm.connectAttr(fk_source, blend.inputMatrix)
-        pm.connectAttr(ik_source, blend.target[0].targetMatrix)
-        pm.connectAttr(blend_attr, blend.target[0].weight)
-        return blend
-
-    def _setup_visibility_controls(self):
-        vis_mapping = {
-            "showGuides": "guides",
-            "showCtrl": "controls",
-            "showRigNodes": "rigNodes",
-            "showJoints": "joints",
-            "showProxyGeo": "geo",
-            "showHelpers": "helpers"
-        }
-        for attr_name, group_name in vis_mapping.items():
-            self.settings_ctrl.node.addAttr(attr=f"{attr_name}", attributeType="bool", defaultValue=1, hidden=False, keyable=True)
-            pm.connectAttr(f"{self.settings_ctrl.node}.{attr_name}", self.groups[group_name].node.visibility)
-            self.settings_ctrl.node.setAttr(attr_name, keyable=False, channelBox=True)
-
-    def _get_local_ribbon_pin_position(self, pos_name):
-        positions = {"top": (0, 0, 0.5), "middle": (0, 0, 0), "down": (0, 0, -0.5)}
-        return positions.get(pos_name, (0, 0, 0))
-
-    def _setup_ribbon_system(self, upper_WM, upper_midpoint_ctrl, lower_start_ribbon_ctrl, lower_ribbon_ctrl, lower_end_ribbon_ctrl, lower_midpoint_ctrl, hand_WM):
-        pin_grp = transform(name=f"{self.name}_nurbsPin_grp")
-        sections = {
-            "upper": {"parent_matrix": upper_WM},
-            "upper_midpoint": {"parent_matrix": upper_midpoint_ctrl},
-            "lower_start": {"parent_matrix": lower_start_ribbon_ctrl},
-            "lower": {"parent_matrix": lower_ribbon_ctrl},
-            "lower_end": {"parent_matrix": lower_end_ribbon_ctrl},
-            "lower_midpoint": {"parent_matrix": lower_midpoint_ctrl},
-            "hand": {"parent_matrix": hand_WM}
-        }
-        curve_points = {'top': [], 'middle': [], 'down': []}
-
-        for section_name, config in sections.items():
-            for height in ["top", "middle", "down"]:
-                pin = create_guide(name=f"{self.name}_{section_name}_{height}_ribbon_pin", color=pin_color, position=self._get_local_ribbon_pin_position(height))
-
-                tfm = translationFromMatrix(name=f"{self.name}_{section_name}_{height}_ribbon_pin_tFM")
-                pm.connectAttr(pin.worldMatrix[0], tfm.input_)
-                pm.connectAttr(config["parent_matrix"], pin.offsetParentMatrix)
-                pm.parent(pin.node, pin_grp.node)
-                pm.parent(pin_grp.node, self.groups["rigNodes"].node)
-                pin_grp.visibility.set(0)
-                curve_points[height].append(tfm)
-
-        return self._create_bezier_curves(curve_points)
-
-    def _create_bezier_curves(self, curve_points:dict):
-
-        ribbon_curves = {}
-
-        for crv, points in curve_points.items():
-            input_nodes = []
-            positions = []
-            for index, p in enumerate(points):
-                if index == 0 or index == len(points) - 1:
-                    input_nodes.append(p)
-                    input_nodes.append(p)
-                    positions.append(pm.getAttr(p.node.output))
-                    positions.append(pm.getAttr(p.node.output))
-                else:
-                    input_nodes.append(p)
-                    positions.append(pm.getAttr(p.node.output))
-            
-            temp_bezier_curve = pm.curve(point=positions, bezier=True, name=f"temp_{crv}_curve")
-            ribbon_curves[f"{crv}_curve"] = transform(name=f"{self.name}_{crv}_bezier_curve")
-            shapes = pm.listRelatives(temp_bezier_curve, shapes=True, fullPath=True)
-            pm.parent(shapes, ribbon_curves[f"{crv}_curve"].node, add=True, shape=True)
-            pm.delete(temp_bezier_curve)
-
-            for index, node in enumerate(input_nodes):
-                pm.connectAttr(node.output, ribbon_curves[f"{crv}_curve"].node.controlPoints[index])          
-
-        return ribbon_curves
-
-    def _rebuild_nurbsPlane(self, input_plane, spans_U:int, spans_V:int, degree_U, degree_V):
-        rebSurface = rebuildSurface(name=f"{self.name}_{input_plane.getName()}_rebuildSurface")
-        pm.connectAttr(input_plane.worldSpace[0], rebSurface.inputSurface)
-        rebSurface.spansU.set(spans_U)
-        rebSurface.spansV.set(spans_V)
-        rebSurface.degreeU.set(degree_U)
-        rebSurface.degreeV.set(degree_V)
-
-        pm.rename(input_plane, newname=f"{self.name}_oldRibbon")
-        pm.parent(input_plane, self.groups["rigNodes"].node)
-
-        input_plane.visibility.set(0)
-        newPlane = pm.nurbsPlane(name=f"{self.name}_newRibbon")[0]
-        newPlaneShape = newPlane.getShape()
-        pm.connectAttr(rebSurface.outputSurface, newPlaneShape.create, force=True)
-
-        newPlane.overrideEnabled.set(1)
-        newPlane.overrideDisplayType.set(1)
-
-        return newPlane, newPlaneShape
-
-    def _add_pin_joints(self, name, ribbon, number_of_pins, scale_parent):
-            jnt_list = []
-
-            pin_list = add_pins_to_ribbon_uv(f"{self.name}", ribbon, number_of_pins)
-            scaleFM = scaleFromMatrix(name=f"{self.name}_scaleFM")
-            pm.connectAttr(scale_parent, scaleFM.input_)
-            for index, pin in enumerate(pin_list):
-                jnt = joint(name=f"{name}_{index}_bnd_jnt")
-                pm.connectAttr(scaleFM.output, jnt.scale)
-                pm.makeIdentity(jnt.node, apply=True, t=0, r=1, s=0, n=0, pn=True)
-                pm.xform(jnt.node, translation=(0, 0, 0))
-                pm.connectAttr(pin.worldMatrix[0], jnt.offsetParentMatrix)
-                jnt_list.append(jnt)
-
-            return pin_list, jnt_list
-
-    def _extract_matrix_axes(self, name, input):
-        """Creates 3 rowFromMatrix nodes with the corresponding rows"""
-        axes = {}
-
-        for i, axis_name in enumerate(["X", "Y", "Z"]):
-            axis = rowFromMatrix(name=f"{self.name}_{name}_axis{axis_name}")
-            pm.connectAttr(input, axis.matrix)
-            axis.input_.set(i)
-            axes[axis_name] = axis
-    
-        return axes
-
-    def _create_fourByFourMatrix(self, name, inputs = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]):
-        """Creates fourByFourMatrix node and connects the inputs
-        
-        in00, in01, in02, in03 \n
-        in10, in11, in12, in13 \n
-        in20, in21, in22, in23 \n
-        in30, in31, in32, in33
-        """
-        fbfM = fourByFourMatrix(name=f"{self.name}_{name}")
-        for i, input in enumerate(inputs):
-            if input is not None:
-                for j, plug in enumerate(input):
-                    if plug is not None:
-                        if isinstance(plug, float | int):
-                            pm.setAttr(f"{fbfM.node}.in{i}{j}", plug)
-                        else:
-                            pm.connectAttr(plug, f"{fbfM.node}.in{i}{j}")
-        return fbfM
-
-    def _remove_main_scale(self, name, world_matrix, main_input):
-        """Creates am multMatrix node and multiplies its first input 
-        with the worldInverseMatrix of the mainInput to remove its scale"""
-        no_main_scale = multMatrix(name=f"{self.name}_{name}")
-        pm.connectAttr(world_matrix, no_main_scale.matrixIn[0])
-        pm.connectAttr(main_input, no_main_scale.matrixIn[1])
-        return no_main_scale
-        
-    def _create_pom(self, name:str, source_matrix, parentGuide_input):
-        """Creates a multMatrix node as a Parent ofset matrix."""
-        pom = multMatrix(name=f"{self.name}_{name}")
-        pm.connectAttr(source_matrix, pom.matrixIn[0])
-        pm.connectAttr(parentGuide_input, pom.matrixIn[1])
-        return pom
-
-    def _lock_ctrl_attrs(self, ctrl, attrs_to_lock):
-        for attr in attrs_to_lock:
-            pm.setAttr(f"{ctrl.node}.{attr}", lock=True)
-            pm.setAttr(f"{ctrl.node}.{attr}", keyable=False)
-            pm.setAttr(f"{ctrl.node}.{attr}", channelBox=False)
-
-    def _create_ik_solver_setup(self, name, upper_length, lower_length, total_length, total_length_squared):
-        """Creates all necessary nodes for an IK-solver using the law of cosines"""
-        nodes = {}
-        
-        nodes["upper_length_squared"] = multiply(name=f"{self.name}_{name}_upper_length_squared")
-        pm.connectAttr(upper_length, nodes["upper_length_squared"].input_[0])
-        pm.connectAttr(upper_length, nodes["upper_length_squared"].input_[1])
-
-        nodes["lower_length_squared"] = multiply(name=f"{self.name}_{name}_lower_length_squared")
-        pm.connectAttr(lower_length, nodes["lower_length_squared"].input_[0])
-        pm.connectAttr(lower_length, nodes["lower_length_squared"].input_[1])
-
-        nodes["upper_numplus"] = sum_(name=f"{self.name}_upper_{name}_numplus")
-        pm.connectAttr(nodes["upper_length_squared"].output, nodes["upper_numplus"].input_[0])
-        pm.connectAttr(total_length_squared, nodes["upper_numplus"].input_[1])
-
-        nodes["upper_numenator"] = subtract(name=f"{self.name}_upper_{name}_numenator")
-        pm.connectAttr(nodes["upper_numplus"].output, nodes["upper_numenator"].input1)
-        pm.connectAttr(nodes["lower_length_squared"].output, nodes["upper_numenator"].input2)
-
-        nodes["upper_denominator"] = multiply(name=f"{self.name}_upper_{name}_denominator")
-        pm.connectAttr(self.float_value_2.outFloat, nodes["upper_denominator"].input_[0])
-        #nodes["upper_denominator"].input_[0].set(2)
-        pm.connectAttr(upper_length, nodes["upper_denominator"].input_[1])
-        pm.connectAttr(total_length, nodes["upper_denominator"].input_[2])
-
-        nodes["upper_cosValue"] = divide(name=f"{self.name}_upper_{name}_cosValue")
-        pm.connectAttr(nodes["upper_numenator"].output, nodes["upper_cosValue"].input1)
-        pm.connectAttr(nodes["upper_denominator"].output, nodes["upper_cosValue"].input2)
-
-        nodes["upper_cosValueSquared"] = multiply(name=f"{self.name}_upper_{name}_cosValueSquared")
-        pm.connectAttr(nodes["upper_cosValue"].output, nodes["upper_cosValueSquared"].input_[0])
-        pm.connectAttr(nodes["upper_cosValue"].output, nodes["upper_cosValueSquared"].input_[1])
-
-        nodes["lower_numplus"] = sum_(name=f"{self.name}_lower_{name}_numplus")
-        pm.connectAttr(nodes["upper_length_squared"].output, nodes["lower_numplus"].input_[0])
-        pm.connectAttr(nodes["lower_length_squared"].output, nodes["lower_numplus"].input_[1])
-
-        nodes["lower_numenator"] = subtract(name=f"{self.name}_lower_{name}_numenator")
-        pm.connectAttr(nodes["lower_numplus"].output, nodes["lower_numenator"].input1)
-        pm.connectAttr(total_length_squared, nodes["lower_numenator"].input2)
-
-        nodes["lower_denominator"] = multiply(name=f"{self.name}_lower_{name}_denominator")
-        pm.connectAttr(self.float_value_2.outFloat, nodes["lower_denominator"].input_[0])
-        #nodes["lower_denominator"].input_[0].set(2)
-        pm.connectAttr(upper_length, nodes["lower_denominator"].input_[1])
-        pm.connectAttr(lower_length, nodes["lower_denominator"].input_[2])
-
-        nodes["lower_cosValue"] = divide(name=f"{self.name}_lower_{name}_cosValue")
-        pm.connectAttr(nodes["lower_numenator"].output, nodes["lower_cosValue"].input1)
-        pm.connectAttr(nodes["lower_denominator"].output, nodes["lower_cosValue"].input2)
-
-        nodes["lower_cosValueSquared"] = multiply(name=f"{self.name}_lower_{name}_cosValueSquared")
-        pm.connectAttr(nodes["lower_cosValue"].output, nodes["lower_cosValueSquared"].input_[0])
-        pm.connectAttr(nodes["lower_cosValue"].output, nodes["lower_cosValueSquared"].input_[1])
-
-        return nodes
-
     def addParent(self, parent_name="parent"):
         """Adds a new parent internally by creating attributes, connections and inputs.
         Manual input connection is requiered."""
@@ -1209,14 +1032,14 @@ class Limb():
         self.elbowLock_IK_ctrl.node.deleteAttr("space")
         self.elbowLock_IK_ctrl.node.addAttr(attr="space", niceName="Space", attributeType="enum", enumName=elbow_enumNameStr, defaultValue=0, hidden=False, keyable=True)
 
-        upper_FK_ctrl_parentSpacePOM = self._create_pom(
-            name="upper_FK_ctrl_parentSpacePOM", source_matrix = self.upper_FK_guide_outWM.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0])
+        upper_FK_ctrl_parentSpacePOM = create_pom(
+            module_name=self.name, name="upper_FK_ctrl_parentSpacePOM", source_matrix = self.upper_FK_guide_outWM.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0])
 
-        hand_IK_ctrl_parentSpacePOM = self._create_pom(
-            name="hand_IK_ctrl_parentSpacePOM", source_matrix = self.hand_FK_guide_outWM.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0])
+        hand_IK_ctrl_parentSpacePOM = create_pom(
+            module_name=self.name, name="hand_IK_ctrl_parentSpacePOM", source_matrix = self.hand_FK_guide_outWM.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0])
 
-        elbow_IK_ctrl_parentSpacePOM = self._create_pom(
-            name="elbow_IK_ctrl_parentSpacePOM", source_matrix = self.orientPlane_guide.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0]
+        elbow_IK_ctrl_parentSpacePOM = create_pom(
+            module_name=self.name, name="elbow_IK_ctrl_parentSpacePOM", source_matrix = self.orientPlane_guide.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0]
         )
 
         hand_IK_ctrl_parentSpaceEnable = equal(name=f"{self.name}_hand_IK_ctrl_{parent_name}SpaceEnable")
@@ -1238,8 +1061,8 @@ class Limb():
         pm.connectAttr(parent_input.offsetParentMatrix, self.elbow_IK_baseWM.target[target_index].targetMatrix)
         pm.connectAttr(elbow_IK_ctrl_parentSpacePOM.matrixSum, self.elbow_IK_baseWM.target[target_index].offsetMatrix)
 
-        elbowLock_IK_ctrl_parentSpacePOM = self._create_pom(
-            name="elbowLock_IK_ctrl_parentSpacePOM", source_matrix = self.elbowLock_guide.worldMatrix[0], parentGuide_input = parentGuide_input.worldInverseMatrix[0])
+        elbowLock_IK_ctrl_parentSpacePOM = create_pom(
+            module_name=self.name, name="elbowLock_IK_ctrl_parentSpacePOM", source_matrix = self.elbowLock_guide.worldMatrix[0], parentGuide_input = parentGuide_input.worldInverseMatrix[0])
 
         elbowLock_IK_ctrl_parentSpaceEnable = equal(name=f"{self.name}_elbowLock_IK_ctrl_{parent_name}Enable")
         pm.connectAttr(self.elbowLock_IK_ctrl.node.space, elbowLock_IK_ctrl_parentSpaceEnable.input1)
@@ -1305,9 +1128,9 @@ class Clavicle:
         start_guide_orientedM.secondaryMode.set(2)
         start_guide_orientedM.secondaryTargetVector.set(0, 0, -1)
 
-        module_POM = self._create_pom(name="module_POM", source_matrix = end_guide.worldMatrix[0], parentGuide_input = parentGuide_input.worldInverseMatrix[0])
+        module_POM = create_pom(module_name=self.name, name="module_POM", source_matrix = end_guide.worldMatrix[0], parentGuide_input = parentGuide_input.worldInverseMatrix[0])
 
-        start_POM = self._create_pom(name="start_POM", source_matrix = start_guide_orientedM.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0])
+        start_POM = create_pom(module_name=self.name, name="start_POM", source_matrix = start_guide_orientedM.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0])
 
         ctrl_WM = multMatrix(name=f"{self.name}_ctrl_WM")
         pm.connectAttr(module_POM.matrixSum, ctrl_WM.matrixIn[0])
@@ -1325,9 +1148,9 @@ class Clavicle:
         pm.connectAttr(start_baseWM.matrixSum, start_WM.inputMatrix)
         pm.connectAttr(ctrl.worldMatrix[0], start_WM.primaryTargetMatrix)
 
-        start_WM_noMainScale = self._remove_main_scale(name="start_WM_noMainScale", world_matrix=start_WM.outputMatrix, main_input=parent_input.worldInverseMatrix[0])
+        start_WM_noMainScale = remove_main_scale(module_name=self.name, name="start_WM_noMainScale", world_matrix=start_WM.outputMatrix, main_input=parent_input.worldInverseMatrix[0])
 
-        ctrl_noMainScale = self._remove_main_scale(name="ctrl_noMainScale", world_matrix=ctrl.worldMatrix[0], main_input=parent_input.worldInverseMatrix[0])
+        ctrl_noMainScale = remove_main_scale(module_name=self.name, name="ctrl_noMainScale", world_matrix=ctrl.worldMatrix[0], main_input=parent_input.worldInverseMatrix[0])
 
         currentLength = distanceBetween(name=f"{self.name}_currentLength")
         pm.connectAttr(start_WM_noMainScale.matrixSum, currentLength.inMatrix1)
@@ -1342,7 +1165,8 @@ class Clavicle:
         pm.connectAttr(currentLength.distance, end_localTx.input_[0])
         pm.connectAttr(originalLength.distance, end_localTx.input_[1])
 
-        end_localM = self._create_fourByFourMatrix(
+        end_localM = create_fourByFourMatrix(
+            module_name=self.name,
             name="end_localM",
             inputs=[[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [end_localTx.output, 0, 0, 1]]
         )
@@ -1355,7 +1179,8 @@ class Clavicle:
         pm.connectAttr(start_guide_orientedM.outputMatrix, start_guide_orientedRotationM.inputMatrix)
         start_guide_orientedRotationM.useTranslate.set(0)
 
-        start_guide_posWM = self._create_fourByFourMatrix(
+        start_guide_posWM = create_fourByFourMatrix(
+            module_name=self.name,
             name="start_guide_posWM",
             inputs=[
                 [0],

@@ -14,7 +14,7 @@ com_color = [0, 0.85, 0]
 
 class Spine:
     def __init__(
-            self, name:str = "spine", com_guide_pos:tuple = (0, 0, 0), hip_guide_pos:tuple = (0, 0, 0), 
+            self, name:str = "spine", bin_jnts=20, com_guide_pos:tuple = (0, 0, 0), hip_guide_pos:tuple = (0, 0, 0), 
             mid_guide_pos:tuple = (0, 0, 0), chest_guide_pos:tuple = (0, 0, 0), settings_guide_pos:tuple = (0, 0, 0)
     ):
         
@@ -267,7 +267,7 @@ class Spine:
         ribbon_pin_grp = transform(name=f"{self.name}_ribbon_pin_grp")
         ribbon_joints_grp = transform(name=f"{self.name}_ribbon_joints_grp")
 
-        ribbon_pins, ribbon_joints = self._add_pin_joints(name="ribbon", ribbon=ribbon, number_of_pins=20, scale_parent=com_ctrl.worldMatrix[0])
+        ribbon_pins, ribbon_joints = self._add_pin_joints(name="ribbon", ribbon=ribbon, number_of_pins=bin_jnts, scale_parent=com_ctrl.worldMatrix[0])
         
         for pin, jnt in zip(ribbon_pins, ribbon_joints):
             pm.parent(pin, ribbon_pin_grp.node)

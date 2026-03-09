@@ -1,6 +1,14 @@
 import json
+import logging
 import pymel.core as pm
+from pathlib import Path
 from maya_scripts.prox_node_setup.generated_nodes import *
+
+LOGGER = logging.getLogger("Rigging Utils")
+
+guide_color = [1, 1, 1]
+pin_color = [1, 1, 0.26]
+limb_connection_color = [0, 0, 0]
 
 def colorize(transform:pm.nodetypes.Transform, color=[1, 0, 0]):
     
@@ -163,6 +171,7 @@ def set_or_connect(value, node_attr, value_type=None):
 
     return pin_list"""
 
+
 def add_pins_to_ribbon(name:str, ribbon, number_of_pins):
     param_length_u = ribbon.getShape().minMaxRangeU.get()
     param_length_v = ribbon.getShape().minMaxRangeV.get()
@@ -175,6 +184,246 @@ def add_pins_to_ribbon(name:str, ribbon, number_of_pins):
         pin_list.append(pin_on_nurbs_surface(name, ribbon, u_pos=u_pos, v_pos=1, name_suf=str(i))) 
 
     return pin_list
+
+
+def create_ik_fk_blend(module_name, blend_name, fk_source, ik_source, blend_attr):
+        blend = blendMatrix(name=f"{module_name}_{blend_name}")
+        pm.connectAttr(fk_source, blend.inputMatrix)
+        pm.connectAttr(ik_source, blend.target[0].targetMatrix)
+        pm.connectAttr(blend_attr, blend.target[0].weight)
+        return blend
+
+
+def setup_visibility_controls(settings_ctrl, groups):
+        vis_mapping = {
+            "showGuides": "guides",
+            "showCtrl": "controls",
+            "showRigNodes": "rigNodes",
+            "showJoints": "joints",
+            "showProxyGeo": "geo",
+            "showHelpers": "helpers"
+        }
+        for attr_name, group_name in vis_mapping.items():
+            settings_ctrl.node.addAttr(attr=f"{attr_name}", attributeType="bool", defaultValue=1, hidden=False, keyable=True)
+            pm.connectAttr(f"{settings_ctrl.node}.{attr_name}", groups[group_name].node.visibility)
+            settings_ctrl.node.setAttr(attr_name, keyable=False, channelBox=True)
+
+
+def get_local_ribbon_pin_position(pos_name):
+        positions = {"top": (0, 0, 0.5), "middle": (0, 0, 0), "down": (0, 0, -0.5)}
+        return positions.get(pos_name, (0, 0, 0))
+
+
+def setup_ribbon_system(module_name, groups, upper_WM, upper_midpoint_ctrl, lower_start_ribbon_ctrl, lower_ribbon_ctrl, lower_end_ribbon_ctrl, lower_midpoint_ctrl, hand_WM):
+        pin_grp = transform(name=f"{module_name}_nurbsPin_grp")
+        sections = {
+            "upper": {"parent_matrix": upper_WM},
+            "upper_midpoint": {"parent_matrix": upper_midpoint_ctrl},
+            "lower_start": {"parent_matrix": lower_start_ribbon_ctrl},
+            "lower": {"parent_matrix": lower_ribbon_ctrl},
+            "lower_end": {"parent_matrix": lower_end_ribbon_ctrl},
+            "lower_midpoint": {"parent_matrix": lower_midpoint_ctrl},
+            "hand": {"parent_matrix": hand_WM}
+        }
+        curve_points = {'top': [], 'middle': [], 'down': []}
+
+        for section_name, config in sections.items():
+            for height in ["top", "middle", "down"]:
+                pin = create_guide(name=f"{module_name}_{section_name}_{height}_ribbon_pin", color=pin_color, position=get_local_ribbon_pin_position(height))
+
+                tfm = translationFromMatrix(name=f"{module_name}_{section_name}_{height}_ribbon_pin_tFM")
+                pm.connectAttr(pin.worldMatrix[0], tfm.input_)
+                pm.connectAttr(config["parent_matrix"], pin.offsetParentMatrix)
+                pm.parent(pin.node, pin_grp.node)
+                pm.parent(pin_grp.node, groups["rigNodes"].node)
+                pin_grp.visibility.set(0)
+                curve_points[height].append(tfm)
+
+        return create_bezier_curves(curve_points)
+
+
+def create_bezier_curves(module_name, curve_points:dict):
+
+    ribbon_curves = {}
+
+    for crv, points in curve_points.items():
+        input_nodes = []
+        positions = []
+        for index, p in enumerate(points):
+            if index == 0 or index == len(points) - 1:
+                input_nodes.append(p)
+                input_nodes.append(p)
+                positions.append(pm.getAttr(p.node.output))
+                positions.append(pm.getAttr(p.node.output))
+            else:
+                input_nodes.append(p)
+                positions.append(pm.getAttr(p.node.output))
+        
+        temp_bezier_curve = pm.curve(point=positions, bezier=True, name=f"temp_{crv}_curve")
+        ribbon_curves[f"{crv}_curve"] = transform(name=f"{module_name}_{crv}_bezier_curve")
+        shapes = pm.listRelatives(temp_bezier_curve, shapes=True, fullPath=True)
+        pm.parent(shapes, ribbon_curves[f"{crv}_curve"].node, add=True, shape=True)
+        pm.delete(temp_bezier_curve)
+
+        for index, node in enumerate(input_nodes):
+            pm.connectAttr(node.output, ribbon_curves[f"{crv}_curve"].node.controlPoints[index])          
+
+    return ribbon_curves
+
+
+def rebuild_nurbsPlane(module_name, groups, input_plane, spans_U:int, spans_V:int, degree_U, degree_V):
+        rebSurface = rebuildSurface(name=f"{module_name}_{input_plane.getName()}_rebuildSurface")
+        pm.connectAttr(input_plane.worldSpace[0], rebSurface.inputSurface)
+        rebSurface.spansU.set(spans_U)
+        rebSurface.spansV.set(spans_V)
+        rebSurface.degreeU.set(degree_U)
+        rebSurface.degreeV.set(degree_V)
+
+        pm.rename(input_plane, newname=f"{module_name}_oldRibbon")
+        pm.parent(input_plane, groups["rigNodes"].node)
+
+        input_plane.visibility.set(0)
+        newPlane = pm.nurbsPlane(name=f"{module_name}_newRibbon")[0]
+        newPlaneShape = newPlane.getShape()
+        pm.connectAttr(rebSurface.outputSurface, newPlaneShape.create, force=True)
+
+        newPlane.overrideEnabled.set(1)
+        newPlane.overrideDisplayType.set(1)
+
+        return newPlane, newPlaneShape
+
+
+def add_pin_joints(module_name, name, ribbon, number_of_pins, scale_parent):
+            jnt_list = []
+
+            pin_list = add_pins_to_ribbon_uv(f"{module_name}", ribbon, number_of_pins)
+            scaleFM = scaleFromMatrix(name=f"{module_name}_scaleFM")
+            pm.connectAttr(scale_parent, scaleFM.input_)
+            for index, pin in enumerate(pin_list):
+                jnt = joint(name=f"{name}_{index}_bnd_jnt")
+                pm.connectAttr(scaleFM.output, jnt.scale)
+                pm.makeIdentity(jnt.node, apply=True, t=0, r=1, s=0, n=0, pn=True)
+                pm.xform(jnt.node, translation=(0, 0, 0))
+                pm.connectAttr(pin.worldMatrix[0], jnt.offsetParentMatrix)
+                jnt_list.append(jnt)
+
+            return pin_list, jnt_list
+
+
+def extract_matrix_axes(module_name, name, input):
+        """Creates 3 rowFromMatrix nodes with the corresponding rows"""
+        axes = {}
+
+        for i, axis_name in enumerate(["X", "Y", "Z"]):
+            axis = rowFromMatrix(name=f"{module_name}_{name}_axis{axis_name}")
+            pm.connectAttr(input, axis.matrix)
+            axis.input_.set(i)
+            axes[axis_name] = axis
+    
+        return axes
+
+
+def create_fourByFourMatrix(module_name, name, inputs = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]):
+        """Creates fourByFourMatrix node and connects the inputs
+        
+        in00, in01, in02, in03 \n
+        in10, in11, in12, in13 \n
+        in20, in21, in22, in23 \n
+        in30, in31, in32, in33
+        """
+        fbfM = fourByFourMatrix(name=f"{module_name}_{name}")
+        for i, input in enumerate(inputs):
+            if input is not None:
+                for j, plug in enumerate(input):
+                    if plug is not None:
+                        if isinstance(plug, float | int):
+                            pm.setAttr(f"{fbfM.node}.in{i}{j}", plug)
+                        else:
+                            pm.connectAttr(plug, f"{fbfM.node}.in{i}{j}")
+        return fbfM
+
+
+def remove_main_scale(module_name, name, world_matrix, main_input):
+        """Creates am multMatrix node and multiplies its first input 
+        with the worldInverseMatrix of the mainInput to remove its scale"""
+        no_main_scale = multMatrix(name=f"{module_name}_{name}")
+        pm.connectAttr(world_matrix, no_main_scale.matrixIn[0])
+        pm.connectAttr(main_input, no_main_scale.matrixIn[1])
+        return no_main_scale
+        
+
+def create_pom(module_name, name:str, source_matrix, parentGuide_input):
+    """Creates a multMatrix node as a Parent ofset matrix."""
+    pom = multMatrix(name=f"{module_name}_{name}")
+    pm.connectAttr(source_matrix, pom.matrixIn[0])
+    pm.connectAttr(parentGuide_input, pom.matrixIn[1])
+    return pom
+
+
+def lock_ctrl_attrs(ctrl, attrs_to_lock):
+    for attr in attrs_to_lock:
+        pm.setAttr(f"{ctrl.node}.{attr}", lock=True)
+        pm.setAttr(f"{ctrl.node}.{attr}", keyable=False)
+        pm.setAttr(f"{ctrl.node}.{attr}", channelBox=False)
+
+
+def create_ik_solver_setup(module_name, name, upper_length, lower_length, total_length, total_length_squared, float_value_2):
+        """Creates all necessary nodes for an IK-solver using the law of cosines"""
+        nodes = {}
+        
+        nodes["upper_length_squared"] = multiply(name=f"{module_name}_{name}_upper_length_squared")
+        pm.connectAttr(upper_length, nodes["upper_length_squared"].input_[0])
+        pm.connectAttr(upper_length, nodes["upper_length_squared"].input_[1])
+
+        nodes["lower_length_squared"] = multiply(name=f"{module_name}_{name}_lower_length_squared")
+        pm.connectAttr(lower_length, nodes["lower_length_squared"].input_[0])
+        pm.connectAttr(lower_length, nodes["lower_length_squared"].input_[1])
+
+        nodes["upper_numplus"] = sum_(name=f"{module_name}_upper_{name}_numplus")
+        pm.connectAttr(nodes["upper_length_squared"].output, nodes["upper_numplus"].input_[0])
+        pm.connectAttr(total_length_squared, nodes["upper_numplus"].input_[1])
+
+        nodes["upper_numenator"] = subtract(name=f"{module_name}_upper_{name}_numenator")
+        pm.connectAttr(nodes["upper_numplus"].output, nodes["upper_numenator"].input1)
+        pm.connectAttr(nodes["lower_length_squared"].output, nodes["upper_numenator"].input2)
+
+        nodes["upper_denominator"] = multiply(name=f"{module_name}_upper_{name}_denominator")
+        pm.connectAttr(float_value_2.outFloat, nodes["upper_denominator"].input_[0])
+        #nodes["upper_denominator"].input_[0].set(2)
+        pm.connectAttr(upper_length, nodes["upper_denominator"].input_[1])
+        pm.connectAttr(total_length, nodes["upper_denominator"].input_[2])
+
+        nodes["upper_cosValue"] = divide(name=f"{module_name}_upper_{name}_cosValue")
+        pm.connectAttr(nodes["upper_numenator"].output, nodes["upper_cosValue"].input1)
+        pm.connectAttr(nodes["upper_denominator"].output, nodes["upper_cosValue"].input2)
+
+        nodes["upper_cosValueSquared"] = multiply(name=f"{module_name}_upper_{name}_cosValueSquared")
+        pm.connectAttr(nodes["upper_cosValue"].output, nodes["upper_cosValueSquared"].input_[0])
+        pm.connectAttr(nodes["upper_cosValue"].output, nodes["upper_cosValueSquared"].input_[1])
+
+        nodes["lower_numplus"] = sum_(name=f"{module_name}_lower_{name}_numplus")
+        pm.connectAttr(nodes["upper_length_squared"].output, nodes["lower_numplus"].input_[0])
+        pm.connectAttr(nodes["lower_length_squared"].output, nodes["lower_numplus"].input_[1])
+
+        nodes["lower_numenator"] = subtract(name=f"{module_name}_lower_{name}_numenator")
+        pm.connectAttr(nodes["lower_numplus"].output, nodes["lower_numenator"].input1)
+        pm.connectAttr(total_length_squared, nodes["lower_numenator"].input2)
+
+        nodes["lower_denominator"] = multiply(name=f"{module_name}_lower_{name}_denominator")
+        pm.connectAttr(float_value_2.outFloat, nodes["lower_denominator"].input_[0])
+        #nodes["lower_denominator"].input_[0].set(2)
+        pm.connectAttr(upper_length, nodes["lower_denominator"].input_[1])
+        pm.connectAttr(lower_length, nodes["lower_denominator"].input_[2])
+
+        nodes["lower_cosValue"] = divide(name=f"{module_name}_lower_{name}_cosValue")
+        pm.connectAttr(nodes["lower_numenator"].output, nodes["lower_cosValue"].input1)
+        pm.connectAttr(nodes["lower_denominator"].output, nodes["lower_cosValue"].input2)
+
+        nodes["lower_cosValueSquared"] = multiply(name=f"{module_name}_lower_{name}_cosValueSquared")
+        pm.connectAttr(nodes["lower_cosValue"].output, nodes["lower_cosValueSquared"].input_[0])
+        pm.connectAttr(nodes["lower_cosValue"].output, nodes["lower_cosValueSquared"].input_[1])
+
+        return nodes
 
 
 def pin_on_nurbs_surface(name, nurbs_surface, u_pos=0.5, v_pos=0.5, name_suf="#"):
@@ -260,3 +509,38 @@ def add_pins_to_ribbon_uv(name:str, ribbon, number_of_pins):
         pin_list.append(pm.PyNode(pin_name))
 
     return pin_list
+
+def align_center(obj1, obj2, obj3):
+    matrix_1 = pm.xform(obj1, query=True, worldSpace=True, matrix=True)
+    matrix_2 = pm.xform(obj2, query=True, worldSpace=True, matrix=True)
+    center_matrix = []
+
+    for index, pnt1 in enumerate(matrix_1):
+        pnt2 = matrix_2[index]
+        diff = (abs(pnt1) + abs(pnt2)) / 2
+        pnt3 = min(pnt1, pnt2) + diff
+        center_matrix.append(pnt3)
+
+    pm.xform(obj3, worldSpace=True, matrix=center_matrix)
+
+
+def get_center(translations):
+    x_sum, y_sum, z_sum = 0, 0, 0
+    num_translations = len(translations)
+
+    for x, y, z in translations:
+        x_sum += x
+        y_sum += y
+        z_sum += z
+
+    center_x = x_sum / num_translations
+    center_y = y_sum / num_translations
+    center_z = z_sum / num_translations
+
+    return center_x, center_y, center_z
+
+
+def match_transforms(source_obj, target_obj, **kwargs):
+    LOGGER.info(f"Matching transforms of {source_obj} to {target_obj}")
+    constraint = pm.parentConstraint(source_obj, target_obj, **kwargs)
+    pm.delete(constraint)
