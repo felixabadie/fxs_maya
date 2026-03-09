@@ -360,6 +360,15 @@ def create_pom(module_name, name:str, source_matrix, parentGuide_input):
     return pom
 
 
+def hierarchy_prep(module_name, name, guide, parent, parentGuide):
+        outputs = {}
+        outputs["pom"] = create_pom(module_name=module_name, name=name, source_matrix=guide, parentGuide_input=parentGuide)
+        outputs["wm"] = multMatrix(name=f"{module_name}_{name}_WM")
+        outputs["pom"].matrixSum >> outputs["wm"].matrixIn[0]
+        pm.connectAttr(parent, outputs["wm"].matrixIn[1])
+        return outputs
+
+
 def lock_ctrl_attrs(ctrl, attrs_to_lock):
     for attr in attrs_to_lock:
         pm.setAttr(f"{ctrl.node}.{attr}", lock=True)

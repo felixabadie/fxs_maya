@@ -457,7 +457,9 @@ class Limb():
             upper_length = upper_length.output, 
             lower_length = lower_length.output, 
             total_length = clampedLength.output, 
-            total_length_squared = clampedLength_squared.output)
+            total_length_squared = clampedLength_squared.output,
+            float_value_2=self.float_value_2
+            )
         
         upper_softIK_cosValue = soft_IK_solver["upper_cosValue"]
         upper_softIK_cosValueSquared = soft_IK_solver["upper_cosValueSquared"]
