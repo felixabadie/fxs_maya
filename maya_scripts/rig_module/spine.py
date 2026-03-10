@@ -59,9 +59,9 @@ class SpineManager:
             return
 
         guide_positions = {
-        "com_guide_pos": self.com_guide_pos,
-        "hip_guide_pos": self.hip_guide_pos,
-        "chest_guide_pos": self.chest_guide_pos,
+            "com_guide_pos": self.com_guide_pos,
+            "hip_guide_pos": self.hip_guide_pos,
+            "chest_guide_pos": self.chest_guide_pos,
         }
 
         resolved_positions = {}
@@ -71,7 +71,7 @@ class SpineManager:
             if all(v is not None for v in values):
                 resolved_positions[attr_name] = values
             else:
-                pm.warning(f"{attr_name} enthält ungültige Werte")
+                pm.warning(f"{attr_name} contains nonvalid values")
                 resolved_positions[attr_name] = None
 
         kwargs = {"name": name, "bind_jnts": bind_jnts}
@@ -81,8 +81,8 @@ class SpineManager:
 
         self.module = SpineModule(**kwargs)
         
-        pm.connectAttr(f"{self.parent_output}.offsetParentMatrix", f"{self.module.out_parent_input}.offsetParentMatrix")
-        pm.connectAttr(f"{self.parent_outputGuide}.offsetParentMatrix", f"{self.module.out_parentGuide_input}.offsetParentMatrix")
+        pm.connectAttr(f"{parent_output}.offsetParentMatrix", f"{self.module.out_parent_input}.offsetParentMatrix")
+        pm.connectAttr(f"{parent_outputGuide}.offsetParentMatrix", f"{self.module.out_parentGuide_input}.offsetParentMatrix")
 
 
 class SpineModule:

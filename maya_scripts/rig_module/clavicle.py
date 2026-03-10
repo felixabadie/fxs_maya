@@ -5,25 +5,84 @@ from maya_scripts.prox_node_setup.generated_nodes import *
 from maya_scripts.utilities import (
     create_guide, 
     create_groups,
-    create_ik_fk_blend, 
-    setup_visibility_controls, 
-    setup_ribbon_system, 
-    rebuild_nurbsPlane, 
-    add_pin_joints, 
-    extract_matrix_axes, 
     create_fourByFourMatrix, 
     remove_main_scale, 
     create_pom, 
-    lock_ctrl_attrs, 
-    create_ik_solver_setup
+    TextFieldHelper,
+    CompoundFieldSlot
 )
 
 guide_color = [1, 1, 1]
 pin_color = [1, 1, 0.26]
 limb_connection_color = [0, 0, 0]
+right_fk_color = [1, 0, 0]
+left_ik_color = [0, 0.85, 0.83]
+left_fk_color = [0, 0, 1]
+right_ik_color = [1, 0.6, 0]
 
-class Clavicle:
-    def __init__(self, parent_module:str , limb_type:str, limb_side:str, start_guide_pos:tuple = (0, 0, 0), end_guide_pos:tuple = (0, 0, 0), clavicle_ctrl_color:list = [0, 0, 0]):
+class ClavivleManager:
+    def __init__(self):
+        self.win_id = "fxs_clavicle_rigging_win"
+
+        if pm.window(self.win_id, query=True, exists=True):
+            pm.deleteUI(self.win_id)
+
+        with pm.window(self.win_id, query=True, exists=True):
+            with pm.columnLayout(adj=True):
+                self.name = TextFieldHelper("Clavivle / Leg-start name: ")
+                self.limb_side = TextFieldHelper("Limb side ('L' or 'R'): ")
+                self.parent_output = TextFieldHelper("Parent Output Group: ")
+                self.parent_outputGuide = TextFieldHelper("Parent Output Guide: ")
+                self.start_guide_pos = CompoundFieldSlot("Start position: ")
+                self.end_guide_pos = CompoundFieldSlot("End position: ")
+                pm.text(label="Please fill out the following fields or select the corresponding components and press: OK")
+                
+                with pm.horizontalLayout():
+                    pm.button(label="Cancel")
+                    pm.button(label="OK", command=self.execute)
+    
+    def execute(self):
+        
+        name = str(self.name)
+        limb_side = str(self.limb_side)
+        parent_output = str(self.parent_output)
+        parent_outputGuide = str(self.parent_outputGuide)
+
+        if limb_side == "L":
+            clavicle_ctrl_color = left_fk_color
+        elif limb_side == "R":
+            clavicle_ctrl_color = right_fk_color
+        else:
+            print("Problem with clavicle limb side")
+
+        guide_positions = {
+            "start_guide_pos": self.start_guide_pos,
+            "end_guide_pos": self.end_guide_pos
+        }
+
+        resolved_positions = {}
+
+        for attr_name, slot in guide_positions.items():
+            values = slot.get_values()
+            if all(v is not None for v in values):
+                resolved_positions[attr_name] = values
+            else:
+                pm.warning(f"{attr_name} contains nonvalid values")
+                resolved_positions[attr_name] = None
+
+        kwargs = {"limb_type": name, "limb_side": limb_side, "clavicle_ctrl_color": clavicle_ctrl_color}
+        for attr_name, value in resolved_positions.items():
+            if value is not None:
+                kwargs[attr_name] = value
+        
+        self.module = ClavicleModule(**kwargs)
+
+        pm.connectAttr(f"{parent_output}.offsetParentMatrix", f"{self.module.out_parent_input}.offsetParentMatrix")
+        pm.connectAttr(f"{parent_outputGuide}.offsetParentMatrix", f"{self.module.out_parentGuide_input}.offsetParentMatrix")
+
+
+class ClavicleModule:
+    def __init__(self, parent_module:str , limb_type:str, limb_side:str, start_guide_pos:tuple = (2, 24, 1), end_guide_pos:tuple = (3, 26, 0), clavicle_ctrl_color:list = [0, 0, 0]):
 
         """
         Creates clavicle rigging module
@@ -53,8 +112,8 @@ class Clavicle:
         start_guide = create_guide(name=f"{self.name}_start_guide", position=start_guide_pos, color=guide_color)
         end_guide = create_guide(name=f"{self.name}_end_guide", position=end_guide_pos, color=guide_color)
 
-        parent_input = transform(name=f"{self.name}_{parent_module}_input")
-        parentGuide_input = transform(name=f"{self.name}_{parent_module}Guide_input")
+        self.parent_input = transform(name=f"{self.name}_{parent_module}_input")
+        self.parentGuide_input = transform(name=f"{self.name}_{parent_module}Guide_input")
 
         end_output = transform(name=f"{self.name}_end_output")
         endGuide_output = transform(name=f"{self.name}_endGuide_output")
@@ -65,17 +124,17 @@ class Clavicle:
         start_guide_orientedM.secondaryMode.set(2)
         start_guide_orientedM.secondaryTargetVector.set(0, 0, -1)
 
-        module_POM = create_pom(module_name=self.name, name="module_POM", source_matrix = end_guide.worldMatrix[0], parentGuide_input = parentGuide_input.worldInverseMatrix[0])
+        module_POM = create_pom(module_name=self.name, name="module_POM", source_matrix = end_guide.worldMatrix[0], parentGuide_input = self.parentGuide_input.worldInverseMatrix[0])
 
-        start_POM = create_pom(module_name=self.name, name="start_POM", source_matrix = start_guide_orientedM.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0])
+        start_POM = create_pom(module_name=self.name, name="start_POM", source_matrix = start_guide_orientedM.outputMatrix, parentGuide_input = self.parentGuide_input.worldInverseMatrix[0])
 
         ctrl_WM = multMatrix(name=f"{self.name}_ctrl_WM")
         pm.connectAttr(module_POM.matrixSum, ctrl_WM.matrixIn[0])
-        pm.connectAttr(parent_input.worldMatrix[0], ctrl_WM.matrixIn[1])
+        pm.connectAttr(self.parent_input.worldMatrix[0], ctrl_WM.matrixIn[1])
 
         start_baseWM = multMatrix(name=f"{self.name}_start_baseWM")
         pm.connectAttr(start_POM.matrixSum, start_baseWM.matrixIn[0])
-        pm.connectAttr(parent_input.worldMatrix[0], start_baseWM.matrixIn[1])
+        pm.connectAttr(self.parent_input.worldMatrix[0], start_baseWM.matrixIn[1])
 
         ctrl = control.create(ctrl_type="fourArrows", name=f"{self.name}_ctrl", normal=(1, 0, 0), color=clavicle_ctrl_color)
         pm.connectAttr(ctrl_WM.matrixSum, ctrl.offsetParentMatrix)
@@ -85,9 +144,9 @@ class Clavicle:
         pm.connectAttr(start_baseWM.matrixSum, start_WM.inputMatrix)
         pm.connectAttr(ctrl.worldMatrix[0], start_WM.primaryTargetMatrix)
 
-        start_WM_noMainScale = remove_main_scale(module_name=self.name, name="start_WM_noMainScale", world_matrix=start_WM.outputMatrix, main_input=parent_input.worldInverseMatrix[0])
+        start_WM_noMainScale = remove_main_scale(module_name=self.name, name="start_WM_noMainScale", world_matrix=start_WM.outputMatrix, main_input=self.parent_input.worldInverseMatrix[0])
 
-        ctrl_noMainScale = remove_main_scale(module_name=self.name, name="ctrl_noMainScale", world_matrix=ctrl.worldMatrix[0], main_input=parent_input.worldInverseMatrix[0])
+        ctrl_noMainScale = remove_main_scale(module_name=self.name, name="ctrl_noMainScale", world_matrix=ctrl.worldMatrix[0], main_input=self.parent_input.worldInverseMatrix[0])
 
         currentLength = distanceBetween(name=f"{self.name}_currentLength")
         pm.connectAttr(start_WM_noMainScale.matrixSum, currentLength.inMatrix1)
@@ -141,7 +200,7 @@ class Clavicle:
         pm.connectAttr(endGuide_output_WM.matrixSum, endGuide_output.offsetParentMatrix)
 
         outliner_data = {
-            "inputs": [parent_input, parentGuide_input],
+            "inputs": [self.parent_input, self.parentGuide_input],
             "guides": [start_guide, end_guide],
             "controls": [ctrl],
             "helpers": [],
@@ -160,4 +219,19 @@ class Clavicle:
             except:
                 pass
 
-#b = Clavicle(parent_module="root", limb_type="clavicle", limb_side="L", start_guide_pos=(1, 8, 0), end_guide_pos=(2, 9, 0), clavicle_ctrl_color=[0, 0, 1])
+    
+    @property
+    def rig_module(self):
+        return self.groups
+    
+    @property
+    def module_name(self):
+        return str(self.groups)
+    
+    @property
+    def out_parent_input(self):
+        return self.parent_input
+
+    @property
+    def out_parentGuide_input(self):
+        return self.parentGuide_input
