@@ -11,7 +11,8 @@ from maya_scripts.utilities import (
     rebuild_nurbsPlane, 
     add_pin_joints, 
     hierarchy_prep,
-    TextFieldHelper
+    TextFieldHelper,
+    CompoundFieldSlot
 )
 
 guide_color = [1, 1, 1]
@@ -21,7 +22,7 @@ spine_IK_color = [1, 0.97, 0.66]
 spine_FK_color = [0.19, 0.84, 0.62]
 com_color = [0, 0.85, 0]
 
-class Spine:
+class SpineManager:
     def __init__(self):
         
         self.win_id = "fxs_spine_rigging_win"
@@ -33,21 +34,62 @@ class Spine:
             with pm.columnLayout(adj=True):
                 self.name = TextFieldHelper("Spine name: ")
                 self.bind_jnts = TextFieldHelper("Amount bind joints: ")
-                self.parent_module = TextFieldHelper("Parent Module: ")
+                self.parent_output = TextFieldHelper("Parent Output Group: ")
+                self.parent_outputGuide = TextFieldHelper("Parent Output Guide: ")
+                self.com_guide_pos = CompoundFieldSlot("COM Position: ")
+                self.hip_guide_pos = CompoundFieldSlot("Hip Position: ")
+                self.chest_guide_pos = CompoundFieldSlot("Chest Position: ")
                 pm.text(label="Please fill out the following fields or select the corresponding components and press: OK")
                 
                 with pm.horizontalLayout():
                     pm.button(label="Cancel")
                     pm.button(label="OK", command=self.execute)
 
+
     def execute(self):
         
-        com_guide_pos=(0, 2, 0)
-        hip_guide_pos=(0, 0, 0)
-        mid_guide_pos=(0, 0, 0)
-        chest_guide_pos=(0, 16, 0)
-        settings_guide_pos=(6, 0, 0)
+        name = str(self.name)
+        parent_output = str(self.parent_output)
+        parent_outputGuide = str(self.parent_outputGuide)
+
+        try:
+            bind_jnts = int(self.bind_jnts.get_value())
+        except ValueError:
+            pm.warning("Bind joints muss eine Zahl sein")
+            return
+
+        guide_positions = {
+        "com_guide_pos": self.com_guide_pos,
+        "hip_guide_pos": self.hip_guide_pos,
+        "chest_guide_pos": self.chest_guide_pos,
+        }
+
+        resolved_positions = {}
+
+        for attr_name, slot in guide_positions.items():
+            values = slot.get_values()
+            if all(v is not None for v in values):
+                resolved_positions[attr_name] = values
+            else:
+                pm.warning(f"{attr_name} enthält ungültige Werte")
+                resolved_positions[attr_name] = None
+
+        kwargs = {"name": name, "bind_jnts": bind_jnts}
+        for attr_name, value in resolved_positions.items():
+            if value is not None:
+                kwargs[attr_name] = value
+
+        self.module = SpineModule(**kwargs)
         
+        pm.connectAttr(f"{self.parent_output}.offsetParentMatrix", f"{self.module.out_parent_input}.offsetParentMatrix")
+        pm.connectAttr(f"{self.parent_outputGuide}.offsetParentMatrix", f"{self.module.out_parentGuide_input}.offsetParentMatrix")
+
+
+class SpineModule:
+    def __init__(self, name:str = "spine", bind_jnts=20, com_guide_pos:tuple = (0, 14, 0), hip_guide_pos:tuple = (0, 12, 0), 
+                 mid_guide_pos:tuple = (0, 0, 0), chest_guide_pos:tuple = (0, 24, 0), settings_guide_pos:tuple = (5, 16, 0)):
+        
+        self.name = name
         self.groups = create_groups(rig_module_name=self.name)
 
         self.parent_input = transform(name=f"{self.name}_parent_input")
@@ -189,20 +231,29 @@ class Spine:
 
         pm.connectAttr(mid_IK_WM.matrixSum, mid_IK_ctrl.offsetParentMatrix)
 
-        hip_localMatrix = blendMatrix(name=f"{self.name}_hip_localMatrix")
-        pm.connectAttr(hip_FK_ctrl.worldMatrix[0], hip_localMatrix.inputMatrix)
-        pm.connectAttr(hip_IK_ctrl.worldMatrix[0], hip_localMatrix.target[0].targetMatrix)
-        pm.connectAttr(self.settings_ctrl.node.use_IK, hip_localMatrix.target[0].weight)
+        hip_localMatrix = create_ik_fk_blend(
+            module_name=self.name,
+            blend_name=f"{self.name}_hip_localMatrix",
+            fk_source=hip_FK_ctrl.worldMatrix[0],
+            ik_source=hip_IK_ctrl.worldMatrix[0],
+            blend_attr=self.settings_ctrl.node.use_IK
+        )
 
-        mid_localMatrix = blendMatrix(name=f"{self.name}_mid_localMatrix")
-        pm.connectAttr(mid_FK_ctrl.worldMatrix[0], mid_localMatrix.inputMatrix)
-        pm.connectAttr(mid_IK_ctrl.worldMatrix[0], mid_localMatrix.target[0].targetMatrix)
-        pm.connectAttr(self.settings_ctrl.node.use_IK, mid_localMatrix.target[0].weight)
+        mid_localMatrix = create_ik_fk_blend(
+            module_name=self.name,
+            blend_name=f"{self.name}_mid_localMatrix",
+            fk_source=mid_FK_ctrl.worldMatrix[0],
+            ik_source=mid_IK_ctrl.worldMatrix[0],
+            blend_attr=self.settings_ctrl.node.use_IK
+        )
 
-        chest_localMatrix = blendMatrix(name=f"{self.name}_chest_localMatrix")
-        pm.connectAttr(chest_FK_ctrl.worldMatrix[0], chest_localMatrix.inputMatrix)
-        pm.connectAttr(chest_IK_ctrl.worldMatrix[0], chest_localMatrix.target[0].targetMatrix)
-        pm.connectAttr(self.settings_ctrl.node.use_IK, chest_localMatrix.target[0].weight)
+        chest_localMatrix = create_ik_fk_blend(
+            module_name=self.name,
+            blend_name=f"{self.name}_chest_localMatrix",
+            fk_source=chest_FK_ctrl.worldMatrix[0],
+            ik_source=chest_IK_ctrl.worldMatrix[0],
+            blend_attr=self.settings_ctrl.node.use_IK
+        )
 
         chest_WM = multMatrix(name=f"{self.name}_chest_WM")
         pm.connectAttr(chest_localMatrix.outputMatrix, chest_WM.matrixIn[0])
@@ -336,5 +387,18 @@ class Spine:
         for IK_c in [hip_IK_ctrl, mid_IK_ctrl, chest_IK_ctrl]:
             pm.connectAttr(self.settings_ctrl.node.use_IK, IK_c.visibility)
 
-"""a = Spine(name="spine", com_guide_pos=(0, 2, 0), hip_guide_pos=(0, 0, 0), 
-          mid_guide_pos=(0, 0, 0), chest_guide_pos=(0, 16, 0), settings_guide_pos=(6, 0, 0))"""
+    @property
+    def rig_module(self):
+        return self.groups
+    
+    @property
+    def module_name(self):
+        return str(self.groups)
+    
+    @property
+    def out_parent_input(self):
+        return self.parent_input
+
+    @property
+    def out_parentGuide_input(self):
+        return self.parentGuide_input

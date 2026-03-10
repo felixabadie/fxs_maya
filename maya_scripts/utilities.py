@@ -29,6 +29,7 @@ def colorize(transform:pm.nodetypes.Transform, color=[1, 0, 0]):
         shape.setAttr("overrideRGBColors", is_rgb)
         shape.setAttr(color_attribute, color)
 
+
 def create_groups(rig_module_name:str = "test"):
     
     """
@@ -62,6 +63,7 @@ def create_groups(rig_module_name:str = "test"):
             pm.setAttr(f"{grp.node}.{attr}", channelBox=False)
      
     return groups
+
 
 def create_groups_(rig_module_name:str):
     
@@ -486,7 +488,6 @@ def pin_on_nurbs_surface(name, nurbs_surface, u_pos=0.5, v_pos=0.5, name_suf="#"
     return pm.PyNode(pin_name)
 
 
-
 def add_pins_to_ribbon_uv(name:str, ribbon, number_of_pins):
 
     pin_list = []
@@ -518,6 +519,7 @@ def add_pins_to_ribbon_uv(name:str, ribbon, number_of_pins):
         pin_list.append(pm.PyNode(pin_name))
 
     return pin_list
+
 
 def align_center(obj1, obj2, obj3):
     matrix_1 = pm.xform(obj1, query=True, worldSpace=True, matrix=True)
@@ -569,3 +571,38 @@ class TextFieldHelper:
             return
         self.control.setText(sel[0].name())
         self.obj = sel[0]
+
+class CompoundFieldSlot:
+    def __init__(self, label):
+        with pm.columnLayout(adj=True):
+            field = pm.floatFieldGrp(
+                label=label,
+                extraLabel="X-Y-Z",
+                numberOfFields=3,
+            )
+
+    def get_values(self):
+        return (
+            pm.floatFieldGrp(self.field, q=True, value1=True),
+            pm.floatFieldGrp(self.field, q=True, value2=True),
+            pm.floatFieldGrp(self.field, q=True, value3=True)
+        )
+    
+    def __iter__(self):
+        return iter(self.get_values())  # damit tuple(self.com_guide_pos) funktioniert
+
+
+def getPosFromObj(obj_name):
+    position = pm.xform(obj_name)
+    return position
+
+
+with pm.window(title="Test") as win:
+    with pm.columnLayout(adj=True):
+        pm.floatFieldGrp(
+            numberOfFields=3,
+            label="Position",
+            extraLabel="X",   # nur EIN extraLabel möglich, leider
+        )
+
+win.show()

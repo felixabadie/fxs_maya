@@ -1307,7 +1307,14 @@ class Leg():
     @property
     def module_name(self):
         return str(self.groups)
-        
+
+    @property
+    def parent_input(self):
+        return self.parent_input
+
+    @property
+    def parentGuide_input(self):
+        return self.parentGuide_input 
 
 """a = Leg(
     main_module="root", 

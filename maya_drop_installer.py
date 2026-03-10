@@ -1,7 +1,8 @@
 import os
-from pathlib import Path
 import sys
 import importlib
+import sysconfig
+from pathlib import Path
 from site import addsitedir
 from maya.OpenMaya import MGlobal as _MGlobal
 
@@ -27,7 +28,8 @@ SETUP_KEY = "CG_SCRIPTS_PATH"
 BACHELOR_TOOL_DIR = f"{MAIN_PATH}/pose_estimation/sourcecode"
 SCRIPTS_DIR = f"{MAIN_PATH}/maya_scripts"
 
-site_packages_dir="C:\\Users\\Felix\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages"
+site_packages_dir=r"F:\WORK\venv\Lib\site-packages"
+#site_packages_dir="C:\\Users\\Felix\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages"
 
 addsitedir(site_packages_dir)
 sys.path.append(str(CAPITO_PATH))
@@ -60,7 +62,10 @@ def create_userSetup():
         f"sys.path.append(r'{str(CAPITO_PATH)}')",
         "import pymel.core as pm",
         'importlib.import_module("capito.maya.setup")',
-        "import pose_prediction.sourcecode.setup.add_shelves()"
+        "from pose_estimation.sourcecode.setup import add_shelves",
+        "from maya_scripts.setup import built_matrix_rigging_tool_shelf"
+        "add_shelves()",
+        "built_matrix_rigging_tool_shelf()"
     ]
 
     user_setup = USER_SCRIPT_DIR / "userSetup.py"
@@ -85,8 +90,11 @@ def import_setup():
     importlib.import_module("capito.maya.setup")
 
 def install_shelf():
-    import pose_estimation.sourcecode.setup.add_shelves
-    import maya_scripts.setup.built_matrix_rigging_tool_shelf
+    from pose_estimation.sourcecode.setup import add_shelves
+    from maya_scripts.setup import built_matrix_rigging_tool_shelf
+
+    add_shelves()
+    built_matrix_rigging_tool_shelf() #might need renaming
 
 def show_results():
     ratios = (30, 200)

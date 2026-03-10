@@ -539,10 +539,10 @@ class Limb():
         upper_softIK_linearTargetHeight.input1.set(1)
         pm.connectAttr(upper_softIK_cosValue.output, upper_softIK_linearTargetHeight.input2)
 
-        upper_softIK_heighthSqaredClamped = max_(name=f"{self.name}_upper_softIK_heighthSqaredClamped")
-        pm.connectAttr(self.float_value_0.outFloat, upper_softIK_heighthSqaredClamped.input_[0])
-        #upper_softIK_heighthSqaredClamped.input_[0].set(0)
-        pm.connectAttr(upper_softIK_heightSquared.output, upper_softIK_heighthSqaredClamped.input_[1])
+        upper_softIK_heightSqaredClamped = max_(name=f"{self.name}_upper_softIK_heightSqaredClamped")
+        pm.connectAttr(self.float_value_0.outFloat, upper_softIK_heightSqaredClamped.input_[0])
+        #upper_softIK_heightSqaredClamped.input_[0].set(0)
+        pm.connectAttr(upper_softIK_heightSquared.output, upper_softIK_heightSqaredClamped.input_[1])
 
         softIK_blendcurve_selector = choice(name=f"{self.name}_softIK_blendcurve_selector")
         pm.connectAttr(self.settings_ctrl.node.softIkCurve, softIK_blendcurve_selector.selector)
@@ -555,7 +555,7 @@ class Limb():
         pm.connectAttr(upper_softIK_linearTargetHeight.output, upper_softIK_quadraticTargetHeight.input_[1])
 
         upper_softIK_height = power(name=f"{self.name}_upper_softIK_height")
-        pm.connectAttr(upper_softIK_heighthSqaredClamped.output, upper_softIK_height.input_)
+        pm.connectAttr(upper_softIK_heightSqaredClamped.output, upper_softIK_height.input_)
         upper_softIK_height.exponent.set(0.5)
 
         segment_lengthRatio = divide(name=f"{self.name}_segment_lengthRatio")
@@ -1100,6 +1100,14 @@ class Limb():
     @property
     def module_name(self):
         return str(self.groups)
+    
+    @property
+    def parent_input(self):
+        return self.parent_input
+
+    @property
+    def parentGuide_input(self):
+        return self.parentGuide_input
         
 
 #a = Limb(main_module="root", parent_module="clavicle", limb_type="arm", limb_side="L", bind_jnts=20, upper_guide_pos=(2, 10, 0), lower_guide_pos=(0, 2, 0), hand_guide_pos=(16, 10, 2), upper_guide_rot=(0, 0, 0))
