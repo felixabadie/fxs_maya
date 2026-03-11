@@ -35,7 +35,7 @@ class LimbManager:
         if pm.window(self.win_id, query=True, exists=True):
             pm.deleteUI(self.win_id)
 
-        with pm.window(self.win_id, query=True, exists=True):
+        with pm.window(self.win_id, title="Limb Rigging Manager") as win:
             with pm.columnLayout(adj=True):
                 self.name = TextFieldHelper("Limb name: ")
                 self.limb_side = TextFieldHelper("Limb side ('L' or 'R'): ")
@@ -54,7 +54,7 @@ class LimbManager:
                     pm.button(label="Cancel")
                     pm.button(label="OK", command=self.execute)
     
-    def execute(self):
+    def execute(self, *args):
         
         name = str(self.name)
         limb_side = str(self.limb_side)

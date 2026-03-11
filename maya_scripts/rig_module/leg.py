@@ -1,7 +1,7 @@
 import json
 from maya_scripts import control
 import pymel.core as pm
-from prox_node_setup.generated_nodes import *
+from maya_scripts.prox_node_setup.generated_nodes import *
 from maya_scripts.utilities import (
     create_guide, 
     create_groups,
@@ -70,7 +70,7 @@ class LegManager:
                     pm.button(label="Cancel")
                     pm.button(label="OK", command=self.execute)
     
-    def execute(self):
+    def execute(self, *args):
         
         name = str(self.name)
         limb_side = str(self.limb_side)

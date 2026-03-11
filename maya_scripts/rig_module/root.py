@@ -1,7 +1,7 @@
 import pymel.core as pm
 from maya_scripts import control
-from prox_node_setup.generated_nodes import *
-from utilities import create_groups, create_guide, colorize, TextFieldHelper, CompoundFieldSlot
+from maya_scripts.prox_node_setup.generated_nodes import *
+from utilities import create_groups, create_guide
 
 guide_color = (1, 1, 1)
 god_color = (1, 0, 1)
@@ -25,7 +25,7 @@ class RootManager:
                     pm.button(label="Cancel")
                     pm.button(label="OK", command=self.execute)
 
-    def execute(self):
+    def execute(self, *args):
         
         module = RootModule(name=self.name, ctrl_size=self.ctrl_size)
 

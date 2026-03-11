@@ -1,10 +1,7 @@
 import json
-import control
 import pymel.core as pm
-from typing import Type, Any
-from dataclasses import dataclass, field
 from prox_node_setup.generated_nodes import *
-from utilities import TextFieldHelper, CompoundFieldSlot
+from utilities import TextFieldHelper
 
 from rig_module.root import RootModule
 from rig_module.base_limb import LimbModule

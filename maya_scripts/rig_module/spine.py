@@ -46,7 +46,7 @@ class SpineManager:
                     pm.button(label="OK", command=self.execute)
 
 
-    def execute(self):
+    def execute(self, *args):
         
         name = str(self.name)
         parent_output = str(self.parent_output)

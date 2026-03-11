@@ -38,12 +38,23 @@ def create_shelf():
         py_leg_module_cmd = "from maya_scripts.rig_module import leg; leg.LegManager()"
         py_spine_module_cmd = "from maya_scripts.rig_module import spine; spine.SpineManager()"
         py_biped_module_cmd = "from maya_scripts.rig_module import full_body_test; full_body_test.BipedManager()"
+        py_clavicle_module_cmd = "from maya_scripts.rig_module import clavicle; clavivle.ClavivleManager()"
 
         root_icon = ICONS_PATH / "root.png"
         limb_icon = ICONS_PATH / "limb.png"
         leg_icon = ICONS_PATH / "leg.png"
         spine_icon = ICONS_PATH / "spine.png"
         biped_icon = ICONS_PATH / "full_body.png"
+        clavicle_icon = ICONS_PATH / "shoulder.png"
+
+        cmds.shelfButton(
+            parent=shelf_name,
+            command=py_biped_module_cmd,
+            sourceType="python",
+            image=biped_icon,
+            label="BipedModule",
+            annotation="Create Biped Rig out of Rigging Modules"
+        )
 
         cmds.shelfButton(
             parent=shelf_name,
@@ -52,6 +63,24 @@ def create_shelf():
             image=root_icon,
             label="root_module",
             annotation="Create Root Module"
+        )
+
+        cmds.shelfButton(
+            parent=shelf_name,
+            command=py_spine_module_cmd,
+            sourceType="python",
+            image=spine_icon,
+            label="SpineModule",
+            annotation="Create Spine Module"
+        )
+
+        cmds.shelfButton(
+            parent=shelf_name,
+            command=py_clavicle_module_cmd,
+            sourceType="python",
+            image=clavicle_icon,
+            label="ClavicleModule",
+            annotation="Create Clavicle Module"
         )
 
         cmds.shelfButton(
@@ -72,23 +101,7 @@ def create_shelf():
             annotation="Create Leg Module"
         )
 
-        cmds.shelfButton(
-            parent=shelf_name,
-            command=py_spine_module_cmd,
-            sourceType="python",
-            image=spine_icon,
-            label="SpineModule",
-            annotation="Create Spine Module"
-        )
 
-        cmds.shelfButton(
-            parent=shelf_name,
-            command=py_biped_module_cmd,
-            sourceType="python",
-            image=biped_icon,
-            label="BipedModule",
-            annotation="Create Biped Rig out of Rigging Modules"
-        )
 
 
     except Exception:
