@@ -16,30 +16,131 @@ from maya_scripts.utilities import (
     create_pom,
     hierarchy_prep,
     lock_ctrl_attrs, 
-    create_ik_solver_setup
+    create_ik_solver_setup,
+    TextFieldHelper,
+    CompoundFieldSlot
 )
 
 guide_color = [1, 1, 1]
 pin_color = [1, 1, 0.26]
 limb_connection_color = [0, 0, 0]
-
+right_fk_color = [1, 0, 0]
+left_ik_color = [0, 0.85, 0.83]
+left_fk_color = [0, 0, 1]
+right_ik_color = [1, 0.6, 0]
 
 
 """
-TOdo:
+Todo:
 
-fix difference IK_FK (Joint orientation broken) lower joint difference in translation Y,Z and rotate Y
-
+When everything works make roll and bank accessible via variables in the creation.
 """
 
 
+class LegManager:
+    def __init__(self):
+        self.win_id = "fxs_leg_rigging_win"
 
-class Leg():
+        if pm.window(self.win_id, query=True, exists=True):
+            pm.deleteUI(self.win_id)
 
-    def __init__(self, main_module:str, parent_module:str , limb_type:str, limb_side:str, bind_jnts=10, upper_guide_pos:tuple = (2, 0, 0), lower_guide_pos:tuple = (0, 0, 0), 
-                 ankle_guide_pos:tuple = (12, 0, 0), foot_guide_pos:tuple = (0, 0, 0), foot_left_bank_guide_pos:tuple = (0, 0, 0), foot_right_bank_guide_pos:tuple = (0, 0, 0), 
-                 foot_heel_guide_pos:tuple = (0, 0, 0), foot_end_guide_pos:tuple = (0, 0, 0), foot_ball_guide_pos:tuple = (0, 0, 0), kneeLock_guide_pos:tuple = (7, 0, -4), 
-                 settings_guide_pos:tuple = (4, 4, -4), upper_guide_rot:tuple = (0, 0, 0), fk_color:list = [0, 0, 1], ik_color:list = [0, 0.85, 0.83]):
+        with pm.window(self.win_id, query=True, exists=True):
+            with pm.columnLayout(adj=True):
+                self.name = TextFieldHelper("Leg name: ")
+                self.limb_side = TextFieldHelper("Leg side ('L' or 'R'): ")
+                self.bind_jnts = TextFieldHelper("Amount bind joints: ")
+                self.parent_output = TextFieldHelper("Parent Output Group: ")
+                self.parent_outputGuide = TextFieldHelper("Parent Output Guide: ")
+                self.main_output = TextFieldHelper("Root Controller output group: ")
+                self.mainGuide_output = TextFieldHelper("Root Controller output guide: ")
+                self.upper_guide_pos = CompoundFieldSlot("Initial position of the upper guide: ")
+                self.lower_guide_pos = CompoundFieldSlot("Initial position of the lower guide: ")
+                self.ankle_guide_pos = CompoundFieldSlot("Initial position of the ankle guide: ")
+                self.foot_guide_pos = CompoundFieldSlot("Initial position of the foot guide: ")
+                self.foot_left_bank_guide_pos = CompoundFieldSlot("Initial position of the left bank guide: ")
+                self.foot_right_bank_guide_pos = CompoundFieldSlot("Initial position of the right bank guide: ")
+                self.foot_heel_guide_pos = CompoundFieldSlot("Initial position of the heel guide: ")
+                self.foot_ball_guide_pos = CompoundFieldSlot("Initial position of the ball guide: ")
+                self.foot_end_guide_pos = CompoundFieldSlot("Initial position of the foot_end guide: ")
+                self.kneeLock_guide_pos = CompoundFieldSlot("Initial position of the kneeLock guide: ")
+                
+                pm.text(label="Please fill out the following fields or select the corresponding components and press: OK")
+                
+                with pm.horizontalLayout():
+                    pm.button(label="Cancel")
+                    pm.button(label="OK", command=self.execute)
+    
+    def execute(self):
+        
+        name = str(self.name)
+        limb_side = str(self.limb_side)
+        parent_output = str(self.parent_output)
+        parent_outputGuide = str(self.parent_outputGuide)
+        main_output = str(self.main_output)
+        mainGuide_output = str(self.mainGuide_output)
+
+        try:
+            bind_jnts = int(self.bind_jnts.get_value())
+        except ValueError:
+            pm.warning("Bind joints must be a number")
+            return
+
+        if limb_side == "L":
+            fk_ctrl_color = left_fk_color
+            ik_ctrl_color = left_ik_color
+        elif limb_side == "R":
+            fk_ctrl_color = right_fk_color
+            ik_ctrl_color = right_ik_color
+        else:
+            print("Problem with limb side")
+
+        guide_positions = {
+            "upper_guide_pos": self.upper_guide_pos,
+            "lower_guide_pos": self.lower_guide_pos,
+            "ankle_guide_pos": self.ankle_guide_pos,
+            "foot_guide_pos": self.foot_guide_pos,
+            "foot_left_bank_guide_pos": self.foot_left_bank_guide_pos,
+            "foot_right_bank_guide_pos": self.foot_right_bank_guide_pos,
+            "foot_heel_guide_pos": self.foot_heel_guide_pos,
+            "foot_ball_guide_pos": self.foot_ball_guide_pos,
+            "foot_end_guide_pos": self.foot_end_guide_pos,
+            "kneeLock_guide_pos": self.kneeLock_guide_pos
+        }
+
+        resolved_positions = {}
+
+        for attr_name, slot in guide_positions.items():
+            values = slot.get_values()
+            if all(v is not None and v != 0.0 for v in values):
+                resolved_positions[attr_name] = values
+            else:
+                pm.warning(f"{attr_name} contains nonvalid values")
+                resolved_positions[attr_name] = None
+
+        kwargs = {"limb_type": name, "limb_side": limb_side, "fk_color": fk_ctrl_color, "ik_color": ik_ctrl_color, "bind_jnts": bind_jnts}
+        for attr_name, value in resolved_positions.items():
+            if value is not None:
+                kwargs[attr_name] = value
+        
+        self.module = LegModule(**kwargs)
+
+        try:
+            pm.connectAttr(f"{parent_output}.offsetParentMatrix", f"{self.module.out_parent_input}.offsetParentMatrix")
+            pm.connectAttr(f"{parent_outputGuide}.offsetParentMatrix", f"{self.module.out_parentGuide_input}.offsetParentMatrix")
+            
+            pm.connectAttr(f"{main_output}.offsetParentMatrix", f"{self.module.out_main_input}.offsetParentMatrix")
+            pm.connectAttr(f"{mainGuide_output}.offsetParentMatrix", f"{self.module.out_mainGuide_input}.offsetParentMatrix")
+        except:
+            print("Parent Module connection not possible, manual connection requiered")
+
+
+
+class LegModule:
+
+    def __init__(self, main_module:str, parent_module:str , limb_type:str, limb_side:str, bind_jnts=10, upper_guide_pos:tuple = (4, 10, 0), lower_guide_pos:tuple = (0, 1, 0), 
+                 ankle_guide_pos:tuple = (0, 1, 0), foot_guide_pos:tuple = (0, 0, 0), foot_left_bank_guide_pos:tuple = (1, 0, 0), foot_right_bank_guide_pos:tuple = (-1, 0, 0), 
+                 foot_heel_guide_pos:tuple = (0, 0, -1), foot_end_guide_pos:tuple = (0, 0, 5), foot_ball_guide_pos:tuple = (0, 0, 3), kneeLock_guide_pos:tuple = (4, 5, 8), 
+                 settings_guide_pos:tuple = (5, 13, -2), upper_guide_rot:tuple = (0, 0, 0), fk_color:list = [0, 0, 1], ik_color:list = [0, 0.85, 0.83]):
         """
         Creates a limb-rig-module based on the tutorials of Jean Paul Tossings. The module can be adapted thanks to guides and be repositioned at any time.
         The Module contains a math-based IK-Solver, an IK/FK Blend, manually scalable segments, softIK to prevent snapping and a ribbon.
@@ -1259,14 +1360,14 @@ class Leg():
         self.kneeLock_IK_ctrl.node.deleteAttr("space")
         self.kneeLock_IK_ctrl.node.addAttr(attr="space", niceName="Space", attributeType="enum", enumName=knee_enumNameStr, defaultValue=0, hidden=False, keyable=True)
 
-        upper_FK_ctrl_parentSpacePOM = self._create_pom(
-            name="upper_FK_ctrl_parentSpacePOM", source_matrix = self.upper_FK_guide_outWM.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0])
+        upper_FK_ctrl_parentSpacePOM = create_pom(
+            module_name=self.name, name="upper_FK_ctrl_parentSpacePOM", source_matrix = self.upper_FK_guide_outWM.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0])
 
-        ankle_IK_ctrl_parentSpacePOM = self._create_pom(
-            name="ankle_IK_ctrl_parentSpacePOM", source_matrix = self.ankle_FK_guide_outWM.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0])
+        ankle_IK_ctrl_parentSpacePOM = create_pom(
+            module_name=self.name, name="ankle_IK_ctrl_parentSpacePOM", source_matrix = self.ankle_FK_guide_outWM.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0])
 
-        knee_IK_ctrl_parentSpacePOM = self._create_pom(
-            name="knee_IK_ctrl_parentSpacePOM", source_matrix = self.orientPlane_guide.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0]
+        knee_IK_ctrl_parentSpacePOM = create_pom(
+            module_name=self.name, name="knee_IK_ctrl_parentSpacePOM", source_matrix = self.orientPlane_guide.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0]
         )
 
         ankle_IK_ctrl_parentSpaceEnable = equal(name=f"{self.name}_ankle_IK_ctrl_{parent_name}SpaceEnable")
@@ -1288,8 +1389,8 @@ class Leg():
         pm.connectAttr(parent_input.offsetParentMatrix, self.knee_IK_baseWM.target[target_index].targetMatrix)
         pm.connectAttr(knee_IK_ctrl_parentSpacePOM.matrixSum, self.knee_IK_baseWM.target[target_index].offsetMatrix)
 
-        kneeLock_IK_ctrl_parentSpacePOM = self._create_pom(
-            name="kneeLock_IK_ctrl_parentSpacePOM", source_matrix = self.kneeLock_guide.worldMatrix[0], parentGuide_input = parentGuide_input.worldInverseMatrix[0])
+        kneeLock_IK_ctrl_parentSpacePOM = create_pom(
+            module_name=self.name, name="kneeLock_IK_ctrl_parentSpacePOM", source_matrix = self.kneeLock_guide.worldMatrix[0], parentGuide_input = parentGuide_input.worldInverseMatrix[0])
 
         kneeLock_IK_ctrl_parentSpaceEnable = equal(name=f"{self.name}_kneeLock_IK_ctrl_{parent_name}Enable")
         pm.connectAttr(self.kneeLock_IK_ctrl.node.space, kneeLock_IK_ctrl_parentSpaceEnable.input1)
@@ -1323,21 +1424,3 @@ class Leg():
     @property
     def out_mainGuide_input(self):
         return self.mainGuide_input
-
-"""a = Leg(
-    main_module="root", 
-    parent_module="leg_start", 
-    limb_type="leg", 
-    limb_side="L", 
-    bind_jnts=20, 
-    upper_guide_pos=(0, 16, 0),
-    upper_guide_rot=(0, 180, 0),
-    lower_guide_pos=(0, 2, 0), 
-    ankle_guide_pos=(0, 2, 0),
-    foot_guide_pos=(0, 0, 0),
-    foot_heel_guide_pos=(0, 0, 0),
-    foot_left_bank_guide_pos=(2, 0, 0),
-    foot_right_bank_guide_pos=(-2, 0, 0),
-    foot_end_guide_pos=(0, 0, 5),
-    foot_ball_guide_pos=(0, 0, 3)
-)"""

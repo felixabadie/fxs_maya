@@ -28,7 +28,7 @@ left_ik_color = [0, 0.85, 0.83]
 left_fk_color = [0, 0, 1]
 right_ik_color = [1, 0.6, 0]
 
-class LimbModule:
+class LimbManager:
     def __init__(self):
         self.win_id = "fxs_limb_rigging_win"
 
@@ -79,8 +79,10 @@ class LimbModule:
             print("Problem with limb side")
 
         guide_positions = {
-            "start_guide_pos": self.start_guide_pos,
-            "end_guide_pos": self.end_guide_pos
+            "upper_guide_pos": self.upper_guide_pos,
+            "lower_guide_pos": self.lower_guide_pos,
+            "hand_guide_pos": self.hand_guide_pos,
+            "elbowLock_guide_pos": self.elbowLock_guide_pos
         }
 
         resolved_positions = {}
@@ -1202,6 +1204,3 @@ class LimbModule:
     @property
     def out_mainGuide_input(self):
         return self.mainGuide_input
-
-
-#a = Limb(main_module="root", parent_module="clavicle", limb_type="arm", limb_side="L", bind_jnts=20, upper_guide_pos=(2, 10, 0), lower_guide_pos=(0, 2, 0), hand_guide_pos=(16, 10, 2), upper_guide_rot=(0, 0, 0))
