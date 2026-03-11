@@ -118,8 +118,8 @@ class ClavicleModule:
         self.parent_input = transform(name=f"{self.name}_{parent_module}_input")
         self.parentGuide_input = transform(name=f"{self.name}_{parent_module}Guide_input")
 
-        end_output = transform(name=f"{self.name}_end_output")
-        endGuide_output = transform(name=f"{self.name}_endGuide_output")
+        self.end_output = transform(name=f"{self.name}_self.end_output")
+        self.endGuide_output = transform(name=f"{self.name}_self.endGuide_output")
 
         start_guide_orientedM = aimMatrix(name=f"{self.name}_start_guide_orientedM")
         pm.connectAttr(start_guide.worldMatrix[0], start_guide_orientedM.inputMatrix)
@@ -189,9 +189,9 @@ class ClavicleModule:
             ]
         )
 
-        endGuide_output_WM = addMatrix(name=f"{self.name}_endGuide_output_WM")
-        pm.connectAttr(start_guide_orientedRotationM.outputMatrix, endGuide_output_WM.matrixIn[0])
-        pm.connectAttr(start_guide_posWM.output, endGuide_output_WM.matrixIn[1])
+        self.endGuide_output_WM = addMatrix(name=f"{self.name}_self.endGuide_output_WM")
+        pm.connectAttr(start_guide_orientedRotationM.outputMatrix, self.endGuide_output_WM.matrixIn[0])
+        pm.connectAttr(start_guide_posWM.output, self.endGuide_output_WM.matrixIn[1])
 
         start_jnt = joint(name=f"{self.name}_start_jnt")
         pm.connectAttr(start_WM.outputMatrix, start_jnt.offsetParentMatrix)
@@ -199,8 +199,8 @@ class ClavicleModule:
         end_jnt = joint(name=f"{self.name}_end_jnt")
         pm.connectAttr(end_WM.matrixSum, end_jnt.offsetParentMatrix)
 
-        pm.connectAttr(end_WM.matrixSum, end_output.offsetParentMatrix)
-        pm.connectAttr(endGuide_output_WM.matrixSum, endGuide_output.offsetParentMatrix)
+        pm.connectAttr(end_WM.matrixSum, self.end_output.offsetParentMatrix)
+        pm.connectAttr(self.endGuide_output_WM.matrixSum, self.endGuide_output.offsetParentMatrix)
 
         outliner_data = {
             "inputs": [self.parent_input, self.parentGuide_input],
@@ -209,7 +209,7 @@ class ClavicleModule:
             "helpers": [],
             "joints": [start_jnt, end_jnt],
             "rigNodes": [],
-            "outputs": [end_output, endGuide_output]
+            "outputs": [self.end_output, self.endGuide_output]
         }
 
         for group_name, nodes in outliner_data.items():
@@ -238,3 +238,11 @@ class ClavicleModule:
     @property
     def out_parentGuide_input(self):
         return self.parentGuide_input
+    
+    @property
+    def out_end_output(self):
+        return self.end_output
+
+    @property
+    def out_endGuide_output(self):
+        return self.endGuide_output

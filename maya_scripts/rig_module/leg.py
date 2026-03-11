@@ -1310,11 +1310,11 @@ class LegModule:
         pm.connectAttr(foot_end_WPos.output, foot_end_proxy_helperShape.controlPoints[1])
 
         #outputs (could be removed later)
-        ankle_output = transform(name=f"{self.name}_ankle_output")
-        pm.connectAttr(ankle_WM.matrixSum, ankle_output.offsetParentMatrix)
+        self.ankle_output = transform(name=f"{self.name}_ankle_output")
+        pm.connectAttr(ankle_WM.matrixSum, self.ankle_output.offsetParentMatrix)
 
-        ankleGuide_output = transform(name=f"{self.name}_ankleGuide_output")
-        pm.connectAttr(ankle_guide.worldMatrix[0], ankleGuide_output.offsetParentMatrix)
+        self.ankleGuide_output = transform(name=f"{self.name}_ankleGuide_output")
+        pm.connectAttr(ankle_guide.worldMatrix[0], self.ankleGuide_output.offsetParentMatrix)
 
         #Organizing outliner
         outliner_data = {
@@ -1324,7 +1324,7 @@ class LegModule:
             "helpers": [kneeLock_IK_helper, upper_proxy_helper, lower_proxy_helper, foot_ball_proxy_helper, foot_end_proxy_helper],
             "joints": [upper_jnt, lower_jnt, ankle_jnt, foot_ball_jnt, foot_end_jnt, ribbon_joints_grp],
             "rigNodes": [foot_left_bank_offset, foot_right_bank_offset, foot_heel_offset, foot_end_offset, foot_ball_offset, ankle_IK_offset, ribbon_pin_grp, ribbon],
-            "outputs": [ankle_output, ankleGuide_output]
+            "outputs": [self.ankle_output, self.ankleGuide_output]
         }
 
         for group_name, nodes in outliner_data.items():
@@ -1410,12 +1410,12 @@ class LegModule:
         return str(self.groups)
 
     @property
-    def parent_input(self):
-        return self.parent_input
+    def out_parent_input(self):
+        return self.parent_module_input
 
     @property
-    def parentGuide_input(self):
-        return self.parentGuide_input 
+    def out_parentGuide_input(self):
+        return self.parent_moduleGuide_input
 
     @property
     def out_main_input(self):
@@ -1424,3 +1424,11 @@ class LegModule:
     @property
     def out_mainGuide_input(self):
         return self.mainGuide_input
+    
+    @property
+    def out_ankle_output(self):
+        return self.ankle_output
+
+    @property
+    def out_ankleGuide_output(self):
+        return self.ankleGuide_output

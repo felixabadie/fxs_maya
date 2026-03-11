@@ -45,16 +45,16 @@ class RootModule:
         pm.connectAttr(root_god_ctrl.worldMatrix[0], root_demigod_ctrl.offsetParentMatrix)
         pm.connectAttr(root_demigod_ctrl.worldMatrix[0], root_main_ctrl.offsetParentMatrix)
 
-        root_main_output = transform(name=f"{self.name}_main_output")
-        root_mainGuide_output = transform(name=f"{self.name}_mainGuide_ouput")
+        self.root_main_output = transform(name=f"{self.name}_main_output")
+        self.root_mainGuide_output = transform(name=f"{self.name}_mainGuide_ouput")
 
-        pm.connectAttr(root_main_ctrl.worldMatrix[0], root_main_output.offsetParentMatrix)
-        pm.connectAttr(root_guide.worldMatrix[0], root_mainGuide_output.offsetParentMatrix)
+        pm.connectAttr(root_main_ctrl.worldMatrix[0], self.root_main_output.offsetParentMatrix)
+        pm.connectAttr(root_guide.worldMatrix[0], self.root_mainGuide_output.offsetParentMatrix)
 
         outliner_data = {
             "guides": [root_guide],
             "controls": [root_god_ctrl, root_demigod_ctrl, root_main_ctrl],
-            "outputs": [root_main_output, root_mainGuide_output]
+            "outputs": [self.root_main_output, self.root_mainGuide_output]
         }
 
         for group_name, nodes in outliner_data.items():
@@ -72,3 +72,11 @@ class RootModule:
     @property
     def module_name(self):
         return str(self.groups)
+    
+    @property
+    def out_main_output(self):
+      return self.root_main_output
+
+    @property
+    def out_mainGuide_output(self):
+        return self.root_mainGuide_output

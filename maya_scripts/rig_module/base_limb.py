@@ -1090,11 +1090,11 @@ class LimbModule:
         pm.connectAttr(hand_WPos.output, lower_proxy_helperShape.controlPoints[1])
 
         #outputs (could be removed later)
-        hand_output = transform(name=f"{self.name}_hand_output")
-        pm.connectAttr(hand_WM.matrixSum, hand_output.offsetParentMatrix)
+        self.hand_output = transform(name=f"{self.name}_self.hand_output")
+        pm.connectAttr(hand_WM.matrixSum, self.hand_output.offsetParentMatrix)
 
-        handGuide_output = transform(name=f"{self.name}_handGuide_output")
-        pm.connectAttr(hand_guide.worldMatrix[0], handGuide_output.offsetParentMatrix)
+        self.handGuide_output = transform(name=f"{self.name}_self.handGuide_output")
+        pm.connectAttr(hand_guide.worldMatrix[0], self.handGuide_output.offsetParentMatrix)
 
         outliner_data = {
             "inputs": [self.main_input, self.mainGuide_input, self.parent_module_input, self.parent_moduleGuide_input],
@@ -1103,7 +1103,7 @@ class LimbModule:
             "helpers": [elbowLock_IK_helper, upper_proxy_helper, lower_proxy_helper],
             "joints": [upper_jnt, lower_jnt, hand_jnt, ribbon_joints_grp],
             "rigNodes": [ribbon_pin_grp, ribbon],
-            "outputs": [hand_output, handGuide_output]
+            "outputs": [self.hand_output, self.handGuide_output]
         }
 
         for group_name, nodes in outliner_data.items():
@@ -1191,11 +1191,11 @@ class LimbModule:
     
     @property
     def out_parent_input(self):
-        return self.parent_input
+        return self.parent_module_input
 
     @property
     def out_parentGuide_input(self):
-        return self.parentGuide_input
+        return self.parent_moduleGuide_input
         
     @property
     def out_main_input(self):
@@ -1204,3 +1204,11 @@ class LimbModule:
     @property
     def out_mainGuide_input(self):
         return self.mainGuide_input
+    
+    @property
+    def out_hand_output(self):
+        return self.hand_output
+
+    @property
+    def out_handGuide_output(self):
+        return self.handGuide_output

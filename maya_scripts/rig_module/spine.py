@@ -265,14 +265,14 @@ class SpineModule:
         com_ctrl.worldMatrix[0] >> com_output.offsetParentMatrix
         mid_localMatrix.outputMatrix >> mid_output.offsetParentMatrix
 
-        hip_output = transform(f"{self.name}_hip_output")
-        hip_localMatrix.outputMatrix >> hip_output.offsetParentMatrix
-        hipGuide_output = transform(f"{self.name}_hipGuide_output")
-        hip_guide.worldMatrix[0] >> hipGuide_output.offsetParentMatrix
-        chest_output = transform(f"{self.name}_chest_output")
-        chest_localMatrix.outputMatrix >> chest_output.offsetParentMatrix
-        chestGuide_output = transform(f"{self.name}_chestGuide_output")
-        chest_guide.worldMatrix[0] >> chestGuide_output.offsetParentMatrix
+        self.hip_output = transform(f"{self.name}_hip_output")
+        hip_localMatrix.outputMatrix >> self.hip_output.offsetParentMatrix
+        self.hipGuide_output = transform(f"{self.name}_hipGuide_output")
+        hip_guide.worldMatrix[0] >> self.hipGuide_output.offsetParentMatrix
+        self.chest_output = transform(f"{self.name}_chest_output")
+        chest_localMatrix.outputMatrix >> self.chest_output.offsetParentMatrix
+        self.chestGuide_output = transform(f"{self.name}_chestGuide_output")
+        chest_guide.worldMatrix[0] >> self.chestGuide_output.offsetParentMatrix
 
         pm.connectAttr(hip_localMatrix.outputMatrix, hip_tangent_offset.offsetParentMatrix)
         pm.connectAttr(chest_localMatrix.outputMatrix, chest_tangent_offset.offsetParentMatrix)
@@ -370,7 +370,7 @@ class SpineModule:
             "guides": [com_guide, hip_guide, chest_guide, mid_guide, settings_guide],
             "joints": [ribbon_joints_grp],
             "rigNodes": [ribbon_pin_grp, hip_tangent_offset, chest_tangent_offset, ribbon, upper_bezier_curve, middle_bezier_curve, down_bezier_curve],
-            "outputs": [hip_output, hipGuide_output, chest_output, chestGuide_output, com_output, mid_output]
+            "outputs": [self.hip_output, self.hipGuide_output, self.chest_output, self.chestGuide_output, com_output, mid_output]
         }
 
         for key, items in order.items():
@@ -405,3 +405,19 @@ class SpineModule:
     @property
     def out_parentGuide_input(self):
         return self.parentGuide_input
+    
+    @property
+    def out_chest_output(self):
+        return self.chest_output
+
+    @property
+    def out_chestGuide_output(self):
+        return self.chestGuide_output
+
+    @property
+    def out_hip_output(self):
+        return self.hip_output
+
+    @property
+    def out_hipGuide_output(self):
+        return self.hipGuide_output

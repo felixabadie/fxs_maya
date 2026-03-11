@@ -78,3 +78,51 @@ ik_solver, ik_effector = pm.ikHandle(
     name="test_ik_solver"
 )
 
+
+
+
+
+# Example: Embedding classes in a dictionary and executing them later
+
+class Greeter:
+    def __init__(self, name):
+        self.name = name
+
+    def __get__(self, instance, owner):
+        pass
+
+    def greet(self):
+        return f"Hello, {self.name}!"
+
+class Adder:
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
+
+    def compute(self):
+        return self.a + self.b
+
+# Create instances of the classes
+greeter_instance = Greeter("Alice")
+adder_instance = Adder(5, 7)
+
+# Store them in a dictionary
+actions = {
+    "say_hello": greeter_instance,
+    "add_numbers": adder_instance
+}
+
+# Later: Access and execute the correct method
+try:
+    # Example 1: Call greet() from Greeter
+    result1 = actions["say_hello"].greet()
+    print(result1)  # Output: Hello, Alice!
+
+    # Example 2: Call compute() from Adder
+    result2 = actions["add_numbers"].compute()
+    print(result2)  # Output: 12
+
+except KeyError as e:
+    print(f"Error: No such action '{e.args[0]}' in dictionary.")
+except AttributeError as e:
+    print(f"Error: Method not found - {e}")
