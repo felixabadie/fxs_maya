@@ -79,7 +79,7 @@ class LegManager:
         main_output = str(self.main_output)
         mainGuide_output = str(self.mainGuide_output)
 
-        if pm.intFieldGrp(self.bind_jnts, query=True, value=True) > 0:
+        if pm.intFieldGrp(self.bind_jnts, query=True, value1=True) > 0:
             bind_jnts = pm.intFieldGrp(self.bind_jnts, query=True, value=True)
         else:
             print("Not enough bind joints (using 5 instead)")

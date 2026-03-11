@@ -20,7 +20,7 @@ left_ik_color = [0, 0.85, 0.83]
 left_fk_color = [0, 0, 1]
 right_ik_color = [1, 0.6, 0]
 
-class ClavivleManager:
+class ClavicleManager:
     def __init__(self):
         self.win_id = "fxs_clavicle_rigging_win"
 

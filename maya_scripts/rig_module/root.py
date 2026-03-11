@@ -1,7 +1,7 @@
 import pymel.core as pm
 from maya_scripts import control
 from maya_scripts.prox_node_setup.generated_nodes import *
-from utilities import create_groups, create_guide
+from maya_scripts.utilities import create_groups, create_guide
 
 guide_color = (1, 1, 1)
 god_color = (1, 0, 1)
