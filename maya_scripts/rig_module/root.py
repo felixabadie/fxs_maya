@@ -19,7 +19,7 @@ class RootManager:
         with pm.window(self.win_id, title="Root Rigging Module") as win:
             with pm.columnLayout(adj=True):
                 self.name = pm.textField(text="Enter Name: ", editable=True)
-                self.ctrl_size = pm.floatFieldGrp(label="Control Size", numberOfFields=1, value1=0.0, editable=True)
+                self.ctrl_size = pm.floatFieldGrp(label="Control Size", numberOfFields=1, value1=0.0)
                 
                 with pm.horizontalLayout():
                     pm.button(label="Cancel")
