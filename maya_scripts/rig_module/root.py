@@ -18,8 +18,8 @@ class RootManager:
 
         with pm.window(self.win_id, title="Root Rigging Module") as win:
             with pm.columnLayout(adj=True):
-                self.name = pm.textField(text="Enter Name", editable=True)
-                self.ctrl_size = pm.floatField(value=0.0, editable=True)
+                self.name = pm.textField(text="Enter Name: ", editable=True)
+                self.ctrl_size = pm.floatFieldGrp(label="Control Size", numberOfFields=1, value1=0.0, editable=True)
                 
                 with pm.horizontalLayout():
                     pm.button(label="Cancel")
@@ -27,7 +27,10 @@ class RootManager:
 
     def execute(self, *args):
         
-        module = RootModule(name=self.name, ctrl_size=self.ctrl_size)
+        name = pm.textField(self.name, query=True, text=True)
+        ctrl_size = pm.floatFieldGrp(self.ctrl_size, query=True, value1=True)
+
+        module = RootModule(name=name, ctrl_size=ctrl_size)
 
 class RootModule:
     def __init__(self, name:str, ctrl_size:int):

@@ -575,7 +575,7 @@ class TextFieldHelper:
 class CompoundFieldSlot:
     def __init__(self, label):
         with pm.columnLayout(adj=True):
-            field = pm.floatFieldGrp(
+            self.field = pm.floatFieldGrp(
                 label=label,
                 extraLabel="X-Y-Z",
                 numberOfFields=3,
