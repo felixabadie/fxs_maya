@@ -113,10 +113,10 @@ class Leg():
         lower_guide.translateZ.set(lock=True)
         lower_guide.node.setLimit("translateMinY", 0)
 
-        main_input = transform(name=f"{self.name}_{main_module}_input")
-        mainGuide_input = transform(name=f"{self.name}_{main_module}Guide_input")
-        parent_module_input = transform(name=f"{self.name}_{parent_module}_input")
-        parent_moduleGuide_input = transform(name=f"{self.name}_{parent_module}Guide_input")
+        self.main_input = transform(name=f"{self.name}_{main_module}_input")
+        self.mainGuide_input = transform(name=f"{self.name}_{main_module}Guide_input")
+        self.parent_module_input = transform(name=f"{self.name}_{parent_module}_input")
+        self.parent_moduleGuide_input = transform(name=f"{self.name}_{parent_module}Guide_input")
 
         self.input_list = [parent_module, main_module, "worldSpace"]
 
@@ -143,24 +143,24 @@ class Leg():
         
         setup_visibility_controls(settings_ctrl=self.settings_ctrl, groups=self.groups)
 
-        parent_module_input_noMainXformM = multMatrix(name=f"{self.name}_{parent_module}_input_noMainXformM")
-        pm.connectAttr(parent_module_input.offsetParentMatrix, parent_module_input_noMainXformM.matrixIn[0])
-        pm.connectAttr(main_input.worldInverseMatrix[0], parent_module_input_noMainXformM.matrixIn[1])
+        self.parent_module_input_noMainXformM = multMatrix(name=f"{self.name}_{parent_module}_input_noMainXformM")
+        pm.connectAttr(self.parent_module_input.offsetParentMatrix, self.parent_module_input_noMainXformM.matrixIn[0])
+        pm.connectAttr(self.main_input.worldInverseMatrix[0], self.parent_module_input_noMainXformM.matrixIn[1])
 
-        parent_module_input_noScaleM = pickMatrix(name=f"{self.name}_{parent_module}_input_noScaleM")
-        pm.connectAttr(parent_module_input_noMainXformM.matrixSum, parent_module_input_noScaleM.inputMatrix)
-        parent_module_input_noScaleM.useScale.set(0)
-        parent_module_input_noScaleM.useShear.set(0)
+        self.parent_module_input_noScaleM = pickMatrix(name=f"{self.name}_{parent_module}_input_noScaleM")
+        pm.connectAttr(self.parent_module_input_noMainXformM.matrixSum, self.parent_module_input_noScaleM.inputMatrix)
+        self.parent_module_input_noScaleM.useScale.set(0)
+        self.parent_module_input_noScaleM.useShear.set(0)
 
-        parent_module_input_WM = multMatrix(name=f"{self.name}_{parent_module}_input_WM")
-        pm.connectAttr(parent_module_input_noScaleM.outputMatrix, parent_module_input_WM.matrixIn[0])
-        pm.connectAttr(main_input.offsetParentMatrix, parent_module_input_WM.matrixIn[1])
+        self.parent_module_input_WM = multMatrix(name=f"{self.name}_{parent_module}_input_WM")
+        pm.connectAttr(self.parent_module_input_noScaleM.outputMatrix, self.parent_module_input_WM.matrixIn[0])
+        pm.connectAttr(self.main_input.offsetParentMatrix, self.parent_module_input_WM.matrixIn[1])
         
-        settings_POM = create_pom(module_name=self.name, name="settings_POM", source_matrix = settings_guide.worldMatrix[0], parentGuide_input = parent_moduleGuide_input.worldInverseMatrix[0])
+        settings_POM = create_pom(module_name=self.name, name="settings_POM", source_matrix = settings_guide.worldMatrix[0], parentGuide_input = self.parent_moduleGuide_input.worldInverseMatrix[0])
 
         settings_WM = multMatrix(name=f"{self.name}_settings_WM")
         pm.connectAttr(settings_POM.matrixSum, settings_WM.matrixIn[0])
-        pm.connectAttr(parent_module_input_WM.matrixSum, settings_WM.matrixIn[1])
+        pm.connectAttr(self.parent_module_input_WM.matrixSum, settings_WM.matrixIn[1])
 
         pm.connectAttr(settings_WM.matrixSum, self.settings_ctrl.offsetParentMatrix)
 
@@ -252,15 +252,15 @@ class Leg():
         pm.connectAttr(self.upper_FK_guide_outWM.outputMatrix, upper_FK_guide_outWIM.inputMatrix)
 
         upper_base_POM = create_pom(
-            module_name=self.name, name="upper_base_POM", source_matrix = self.upper_FK_guide_outWM.outputMatrix, parentGuide_input = parent_moduleGuide_input.worldInverseMatrix[0])
+            module_name=self.name, name="upper_base_POM", source_matrix = self.upper_FK_guide_outWM.outputMatrix, parentGuide_input = self.parent_moduleGuide_input.worldInverseMatrix[0])
 
         upper_baseWM = multMatrix(name=f"{self.name}_upper_baseWM")
         pm.connectAttr(upper_base_POM.matrixSum, upper_baseWM.matrixIn[0])
-        pm.connectAttr(parent_module_input_WM.matrixSum, upper_baseWM.matrixIn[1])
+        pm.connectAttr(self.parent_module_input_WM.matrixSum, upper_baseWM.matrixIn[1])
 
         upper_baseWM_noMainXformM = multMatrix(name=f"{self.name}_upper_baseWM_noMainXformM")
         pm.connectAttr(upper_baseWM.matrixSum, upper_baseWM_noMainXformM.matrixIn[0])
-        pm.connectAttr(main_input.worldInverseMatrix[0], upper_baseWM_noMainXformM.matrixIn[1])
+        pm.connectAttr(self.main_input.worldInverseMatrix[0], upper_baseWM_noMainXformM.matrixIn[1])
 
         upper_baseWM_noScaleM = pickMatrix(name=f"{self.name}_upper_baseWM_noScaleM")
         pm.connectAttr(upper_baseWM_noMainXformM.matrixSum, upper_baseWM_noScaleM.inputMatrix)
@@ -269,10 +269,10 @@ class Leg():
 
         upper_WM_test = multMatrix(name=f"{self.name}_upper_WM_test")
         pm.connectAttr(upper_baseWM_noScaleM.outputMatrix, upper_WM_test.matrixIn[0])
-        pm.connectAttr(main_input.offsetParentMatrix, upper_WM_test.matrixIn[1])
+        pm.connectAttr(self.main_input.offsetParentMatrix, upper_WM_test.matrixIn[1])
 
         upper_FK_ctrl_mainSpacePOM = create_pom(
-            module_name=self.name, name="upper_FK_ctrl_mainSpacePOM", source_matrix = self.upper_FK_guide_outWM.outputMatrix, parentGuide_input = mainGuide_input.worldInverseMatrix[0])
+            module_name=self.name, name="upper_FK_ctrl_mainSpacePOM", source_matrix = self.upper_FK_guide_outWM.outputMatrix, parentGuide_input = self.mainGuide_input.worldInverseMatrix[0])
 
         foot_IK_ctrl_mainSpaceEnable = equal(name=f"{self.name}_foot_IK_ctrl_{main_module}SpaceEnable")
         pm.connectAttr(self.settings_ctrl.node.space, foot_IK_ctrl_mainSpaceEnable.input1)
@@ -285,7 +285,7 @@ class Leg():
         self.upper_FK_ctrl_rotWM = parentMatrix(name=f"{self.name}_upper_FK_ctrl_rotWM")
         pm.connectAttr(upper_WM_test.matrixSum, self.upper_FK_ctrl_rotWM.inputMatrix)
         pm.connectAttr(foot_IK_ctrl_mainSpaceEnable.output, self.upper_FK_ctrl_rotWM.target[0].enableTarget)
-        pm.connectAttr(main_input.offsetParentMatrix, self.upper_FK_ctrl_rotWM.target[0].targetMatrix)
+        pm.connectAttr(self.main_input.offsetParentMatrix, self.upper_FK_ctrl_rotWM.target[0].targetMatrix)
         pm.connectAttr(upper_FK_ctrl_mainSpacePOM.matrixSum, self.upper_FK_ctrl_rotWM.target[0].offsetMatrix)
         pm.connectAttr(foot_IK_ctrl_worldSpaceEnable.output, self.upper_FK_ctrl_rotWM.target[1].enableTarget)
         pm.connectAttr(self.upper_FK_guide_outWM.outputMatrix, self.upper_FK_ctrl_rotWM.target[1].offsetMatrix)
@@ -415,18 +415,18 @@ class Leg():
 
         #IK foot, reverse-foot, and ankle
 
-        foot_IK_ctrl_POM = create_pom(module_name=self.name, name="foot_IK_ctrl_POM", source_matrix = foot_guide.worldMatrix[0], parentGuide_input = parent_moduleGuide_input.worldInverseMatrix[0])
+        foot_IK_ctrl_POM = create_pom(module_name=self.name, name="foot_IK_ctrl_POM", source_matrix = foot_guide.worldMatrix[0], parentGuide_input = self.parent_moduleGuide_input.worldInverseMatrix[0])
 
         foot_IK_ctrl_parent_moduleSpaceWM =  multMatrix(name=f"{self.name}_foot_IK_ctrl_{parent_module}SpaceWM")
         pm.connectAttr(foot_IK_ctrl_POM.matrixSum, foot_IK_ctrl_parent_moduleSpaceWM.matrixIn[0])
-        pm.connectAttr(parent_module_input_WM.matrixSum, foot_IK_ctrl_parent_moduleSpaceWM.matrixIn[1])
+        pm.connectAttr(self.parent_module_input_WM.matrixSum, foot_IK_ctrl_parent_moduleSpaceWM.matrixIn[1])
 
-        foot_IK_ctrl_mainSpacePOM = create_pom(module_name=self.name, name="foot_IK_ctrl_mainSpacePOM", source_matrix = self.foot_guide_outWM.outputMatrix, parentGuide_input = mainGuide_input.worldInverseMatrix[0])
+        foot_IK_ctrl_mainSpacePOM = create_pom(module_name=self.name, name="foot_IK_ctrl_mainSpacePOM", source_matrix = self.foot_guide_outWM.outputMatrix, parentGuide_input = self.mainGuide_input.worldInverseMatrix[0])
         
         self.foot_IK_ctrl_WM = parentMatrix(f"{self.name}_foot_IK_ctrl_WM")
         pm.connectAttr(foot_IK_ctrl_parent_moduleSpaceWM.matrixSum, self.foot_IK_ctrl_WM.inputMatrix)
         pm.connectAttr(foot_IK_ctrl_mainSpaceEnable.output, self.foot_IK_ctrl_WM.target[0].enableTarget)
-        pm.connectAttr(main_input.offsetParentMatrix, self.foot_IK_ctrl_WM.target[0].targetMatrix)
+        pm.connectAttr(self.main_input.offsetParentMatrix, self.foot_IK_ctrl_WM.target[0].targetMatrix)
         pm.connectAttr(foot_IK_ctrl_mainSpacePOM.matrixSum, self.foot_IK_ctrl_WM.target[0].offsetMatrix)
         pm.connectAttr(foot_IK_ctrl_worldSpaceEnable.output, self.foot_IK_ctrl_WM.target[1].enableTarget)
         pm.connectAttr(self.foot_guide_outWM.outputMatrix, self.foot_IK_ctrl_WM.target[1].offsetMatrix)
@@ -545,18 +545,18 @@ class Leg():
 
         #IK knee
 
-        knee_IK_guide_POM = create_pom(module_name=self.name, name="knee_IK_guide_POM", source_matrix = self.orientPlane_guide.outputMatrix, parentGuide_input = mainGuide_input.worldInverseMatrix[0])
+        knee_IK_guide_POM = create_pom(module_name=self.name, name="knee_IK_guide_POM", source_matrix = self.orientPlane_guide.outputMatrix, parentGuide_input = self.mainGuide_input.worldInverseMatrix[0])
 
         knee_IK_clavicleSpaceWM = multMatrix(name=f"{self.name}_IK_clavicleSpaceWM")
         pm.connectAttr(knee_IK_guide_POM.matrixSum, knee_IK_clavicleSpaceWM.matrixIn[0])
-        pm.connectAttr(main_input.worldMatrix[0], knee_IK_clavicleSpaceWM.matrixIn[1])
+        pm.connectAttr(self.main_input.worldMatrix[0], knee_IK_clavicleSpaceWM.matrixIn[1])
 
-        knee_IK_mainSpacePOM = create_pom(module_name=self.name, name="knee_IK_mainSpacePOM", source_matrix=self.orientPlane_guide.outputMatrix, parentGuide_input=mainGuide_input.worldInverseMatrix[0])
+        knee_IK_mainSpacePOM = create_pom(module_name=self.name, name="knee_IK_mainSpacePOM", source_matrix=self.orientPlane_guide.outputMatrix, parentGuide_input=self.mainGuide_input.worldInverseMatrix[0])
 
         self.knee_IK_baseWM = parentMatrix(name=f"{self.name}_knee_IK_baseWM")
         pm.connectAttr(knee_IK_clavicleSpaceWM.matrixSum, self.knee_IK_baseWM.inputMatrix)
         pm.connectAttr(foot_IK_ctrl_mainSpaceEnable.output, self.knee_IK_baseWM.target[0].enableTarget)
-        pm.connectAttr(main_input.offsetParentMatrix, self.knee_IK_baseWM.target[0].targetMatrix)
+        pm.connectAttr(self.main_input.offsetParentMatrix, self.knee_IK_baseWM.target[0].targetMatrix)
         pm.connectAttr(knee_IK_mainSpacePOM.matrixSum, self.knee_IK_baseWM.target[0].offsetMatrix)
         pm.connectAttr(foot_IK_ctrl_mainSpaceEnable.output, self.knee_IK_baseWM.target[1].enableTarget)
         pm.connectAttr(self.orientPlane_guide.outputMatrix, self.knee_IK_baseWM.target[1].offsetMatrix)
@@ -578,11 +578,11 @@ class Leg():
 
         #IK knee Lock
 
-        kneeLock_IK_ctrl_mainSpacePOM = create_pom(module_name=self.name, name="kneeLock_IK_ctrl_mainSpacePOM", source_matrix = self.kneeLock_guide.worldMatrix[0], parentGuide_input = mainGuide_input.worldInverseMatrix[0])
+        kneeLock_IK_ctrl_mainSpacePOM = create_pom(module_name=self.name, name="kneeLock_IK_ctrl_mainSpacePOM", source_matrix = self.kneeLock_guide.worldMatrix[0], parentGuide_input = self.mainGuide_input.worldInverseMatrix[0])
 
         kneeLock_IK_ctrl_mainSpaceWM = multMatrix(name=f"{self.name}_kneeLock_IK_ctrl_{main_module}SpaceWM")
         pm.connectAttr(kneeLock_IK_ctrl_mainSpacePOM.matrixSum, kneeLock_IK_ctrl_mainSpaceWM.matrixIn[0])
-        pm.connectAttr(main_input.worldMatrix[0], kneeLock_IK_ctrl_mainSpaceWM.matrixIn[1])
+        pm.connectAttr(self.main_input.worldMatrix[0], kneeLock_IK_ctrl_mainSpaceWM.matrixIn[1])
 
         kneeLock_IK_ctrl_worldSpaceEnable = equal(name=f"{self.name}_kneeLock_IK_ctrl_worldSpaceEnable")
         pm.connectAttr(self.kneeLock_IK_ctrl.node.space, kneeLock_IK_ctrl_worldSpaceEnable.input1)
@@ -598,9 +598,9 @@ class Leg():
 
         #IK Prep
 
-        upper_baseWM_noMainScale = remove_main_scale(module_name=self.name, name="upper_baseWM_noMainScale", world_matrix=upper_baseWM.matrixSum, main_input=main_input.worldInverseMatrix[0])
+        upper_baseWM_noMainScale = remove_main_scale(module_name=self.name, name="upper_baseWM_noMainScale", world_matrix=upper_baseWM.matrixSum, main_input=self.main_input.worldInverseMatrix[0])
 
-        ankle_IK_ctrl_noMainScale = remove_main_scale(module_name=self.name, name="ankle_IK_ctrl_noMainScale", world_matrix=ankle_IK_offset.worldMatrix[0], main_input=main_input.worldInverseMatrix[0])
+        ankle_IK_ctrl_noMainScale = remove_main_scale(module_name=self.name, name="ankle_IK_ctrl_noMainScale", world_matrix=ankle_IK_offset.worldMatrix[0], main_input=self.main_input.worldInverseMatrix[0])
 
         current_length = distanceBetween(name=f"{self.name}_current_length")
         pm.connectAttr(upper_baseWM_noMainScale.matrixSum, current_length.inMatrix1)
@@ -792,7 +792,7 @@ class Leg():
         pm.connectAttr(disable_soft_ik.output, upper_softIK_scaler_enable.input_[0])
         pm.connectAttr(upper_softIK_scaler.output, upper_softIK_scaler_enable.input_[1])
 
-        kneeLock_IK_ctrl_noMainScale = remove_main_scale(module_name=self.name, name="kneeLock_IK_ctrl_noMainScale", world_matrix=self.kneeLock_IK_ctrl.worldMatrix[0], main_input=main_input.worldInverseMatrix[0])
+        kneeLock_IK_ctrl_noMainScale = remove_main_scale(module_name=self.name, name="kneeLock_IK_ctrl_noMainScale", world_matrix=self.kneeLock_IK_ctrl.worldMatrix[0], main_input=self.main_input.worldInverseMatrix[0])
 
         lower_softIK_scaler_enable = max_(name=f"{self.name}_lower_softIK_scaler_enable")
         pm.connectAttr(disable_soft_ik.output, lower_softIK_scaler_enable.input_[0])
@@ -1133,7 +1133,7 @@ class Leg():
             degree_U=1, 
             degree_V=3)
 
-        ribbon_pins, ribbon_joints = add_pin_joints(module_name=self.name, name="ribbon", ribbon=ribbon, number_of_pins=self.bind_jnts, scale_parent=main_input.worldMatrix[0])
+        ribbon_pins, ribbon_joints = add_pin_joints(module_name=self.name, name="ribbon", ribbon=ribbon, number_of_pins=self.bind_jnts, scale_parent=self.main_input.worldMatrix[0])
 
         ribbon_pin_grp = transform(name=f"{self.name}_ribbon_pin_grp")
         ribbon_joints_grp = transform(name=f"{self.name}_ribbon_joints_grp")
@@ -1217,7 +1217,7 @@ class Leg():
 
         #Organizing outliner
         outliner_data = {
-            "inputs": [main_input, mainGuide_input, parent_module_input, parent_moduleGuide_input],
+            "inputs": [self.main_input, self.mainGuide_input, self.parent_module_input, self.parent_moduleGuide_input],
             "guides": [upper_guide, lower_guide, ankle_guide, settings_guide, self.kneeLock_guide, foot_guide, foot_heel_guide, foot_end_guide, foot_ball_guide, foot_left_bank_guide, foot_right_bank_guide],
             "controls": [upper_FK_ctrl, lower_FK_ctrl, ankle_FK_ctrl, foot_IK_ctrl, knee_IK_ctrl, self.settings_ctrl, self.kneeLock_IK_ctrl, foot_ball_FK_ctrl],
             "helpers": [kneeLock_IK_helper, upper_proxy_helper, lower_proxy_helper, foot_ball_proxy_helper, foot_end_proxy_helper],
@@ -1315,6 +1315,14 @@ class Leg():
     @property
     def parentGuide_input(self):
         return self.parentGuide_input 
+
+    @property
+    def out_main_input(self):
+        return self.main_input
+    
+    @property
+    def out_mainGuide_input(self):
+        return self.mainGuide_input
 
 """a = Leg(
     main_module="root", 

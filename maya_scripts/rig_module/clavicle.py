@@ -64,7 +64,7 @@ class ClavivleManager:
 
         for attr_name, slot in guide_positions.items():
             values = slot.get_values()
-            if all(v is not None for v in values):
+            if all(v is not None and v != 0.0 for v in values):
                 resolved_positions[attr_name] = values
             else:
                 pm.warning(f"{attr_name} contains nonvalid values")
@@ -77,8 +77,11 @@ class ClavivleManager:
         
         self.module = ClavicleModule(**kwargs)
 
-        pm.connectAttr(f"{parent_output}.offsetParentMatrix", f"{self.module.out_parent_input}.offsetParentMatrix")
-        pm.connectAttr(f"{parent_outputGuide}.offsetParentMatrix", f"{self.module.out_parentGuide_input}.offsetParentMatrix")
+        try:
+            pm.connectAttr(f"{parent_output}.offsetParentMatrix", f"{self.module.out_parent_input}.offsetParentMatrix")
+            pm.connectAttr(f"{parent_outputGuide}.offsetParentMatrix", f"{self.module.out_parentGuide_input}.offsetParentMatrix")
+        except:
+            print("Parent Module connection not possible, manual connection requiered")
 
 
 class ClavicleModule:
