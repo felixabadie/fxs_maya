@@ -53,7 +53,7 @@ class SpineManager:
         parent_outputGuide = str(self.parent_outputGuide)
 
         if pm.intFieldGrp(self.bind_jnts, query=True, value1=True) > 0:
-            bind_jnts = pm.intFieldGrp(self.bind_jnts, query=True, value=True)
+            bind_jnts = pm.intFieldGrp(self.bind_jnts, query=True, value1=True)
         else:
             print("Not enough bind joints (using 5 instead)")
             bind_jnts = 5
