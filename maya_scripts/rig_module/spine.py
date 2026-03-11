@@ -33,7 +33,7 @@ class SpineManager:
         with pm.window(self.win_id, title="Spine Rigging Module") as win:
             with pm.columnLayout(adj=True):
                 self.name = TextFieldHelper("Spine name: ")
-                self.bind_jnts = TextFieldHelper("Amount bind joints: ")
+                self.bind_jnts = pm.intFieldGrp(label="Amount bind joints: ", numberOfFields=1)
                 self.parent_output = TextFieldHelper("Parent Output Group: ")
                 self.parent_outputGuide = TextFieldHelper("Parent Output Guide: ")
                 self.com_guide_pos = CompoundFieldSlot("COM Position: ")
@@ -52,11 +52,11 @@ class SpineManager:
         parent_output = str(self.parent_output)
         parent_outputGuide = str(self.parent_outputGuide)
 
-        try:
-            bind_jnts = int(self.bind_jnts.get_value())
-        except ValueError:
-            pm.warning("Bind joints muss eine Zahl sein")
-            return
+        if pm.intFieldGrp(self.bind_jnts, query=True, value=True) > 0:
+            bind_jnts = pm.intFieldGrp(self.bind_jnts, query=True, value=True)
+        else:
+            print("Not enough bind joints (using 5 instead)")
+            bind_jnts = 5
 
         guide_positions = {
             "com_guide_pos": self.com_guide_pos,
@@ -89,7 +89,7 @@ class SpineManager:
         
 
 class SpineModule:
-    def __init__(self, name:str = "spine", bind_jnts=20, com_guide_pos:tuple = (0, 14, 0), hip_guide_pos:tuple = (0, 12, 0), 
+    def __init__(self, name:str = "spine", bind_jnts=10, com_guide_pos:tuple = (0, 14, 0), hip_guide_pos:tuple = (0, 12, 0), 
                  mid_guide_pos:tuple = (0, 0, 0), chest_guide_pos:tuple = (0, 24, 0), settings_guide_pos:tuple = (5, 16, 0)):
         
         self.name = name

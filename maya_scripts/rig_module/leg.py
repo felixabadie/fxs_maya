@@ -44,11 +44,11 @@ class LegManager:
         if pm.window(self.win_id, query=True, exists=True):
             pm.deleteUI(self.win_id)
 
-        with pm.window(self.win_id, query=True, exists=True):
+        with pm.window(self.win_id, title="Leg Rigging Module") as win:
             with pm.columnLayout(adj=True):
                 self.name = TextFieldHelper("Leg name: ")
                 self.limb_side = TextFieldHelper("Leg side ('L' or 'R'): ")
-                self.bind_jnts = TextFieldHelper("Amount bind joints: ")
+                self.bind_jnts = pm.intFieldGrp(label="Amount of bind joints: ", numberOfFields=1)
                 self.parent_output = TextFieldHelper("Parent Output Group: ")
                 self.parent_outputGuide = TextFieldHelper("Parent Output Guide: ")
                 self.main_output = TextFieldHelper("Root Controller output group: ")
@@ -79,12 +79,12 @@ class LegManager:
         main_output = str(self.main_output)
         mainGuide_output = str(self.mainGuide_output)
 
-        try:
-            bind_jnts = int(self.bind_jnts.get_value())
-        except ValueError:
-            pm.warning("Bind joints must be a number")
-            return
-
+        if pm.intFieldGrp(self.bind_jnts, query=True, value=True) > 0:
+            bind_jnts = pm.intFieldGrp(self.bind_jnts, query=True, value=True)
+        else:
+            print("Not enough bind joints (using 5 instead)")
+            bind_jnts = 5
+        
         if limb_side == "L":
             fk_ctrl_color = left_fk_color
             ik_ctrl_color = left_ik_color

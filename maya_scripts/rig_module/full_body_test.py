@@ -2,11 +2,12 @@ import json
 import control
 import pymel.core as pm
 from prox_node_setup.generated_nodes import *
-from utilities import create_guide, colorize, create_groups, add_pins_to_ribbon, add_pins_to_ribbon_uv, create_groups_
+from utilities import TextFieldHelper, CompoundFieldSlot
 
-from rig_module.base_limb import Limb, Clavicle
-from rig_module.spine import Spine
-from rig_module.leg import Leg
+from rig_module.base_limb import LimbModule
+from rig_module.spine import SpineModule
+from rig_module.leg import LegModule
+from rig_module.clavicle import ClavicleModule
 from rig_module import create_root_module
 
 guide_color = [1, 1, 1]
@@ -19,7 +20,62 @@ right_ik_color = [1, 0.6, 0]
 
 #create_root_module()
 
-spine = Spine(
+class BipedManager:
+    def __init__(self):
+        self.win_id = "fxs_biped_rigging_win"
+
+        if pm.window(self.win_id, query=True, exists=True):
+            pm.deleteUI(self.win_id)
+
+        with pm.window(self.win_id, title="Biped Rigging Manager") as win:
+            with pm.columnLayout(adj=True):
+                self.root_name = TextFieldHelper()
+                self.spine_name = TextFieldHelper()
+                self.clavicle_name = TextFieldHelper()
+                self.leg_start_name = TextFieldHelper()
+                self.arm_name = TextFieldHelper()
+                self.leg_name = TextFieldHelper()
+                self.spine_bind_jnts = pm.intFieldGrp(label="Amount spine bind joints: ", numberOfFields=1)
+                self.arm_bind_jnts = pm.intFieldGrp(label="Amount arm bind joints: ", numberOfFields=1)
+                self.leg_bind_jnts = pm.intFieldGrp(label="Amount leg bind joints: ", numberOfFields=1)
+
+                pm.text(label="Please fill out the following fields or select the corresponding components and press: OK")
+                
+                with pm.horizontalLayout():
+                    pm.button(label="Cancel")
+                    pm.button(label="OK", command=self.execute)
+
+    def execute(self):
+        root_name = str(self.root_name)
+        spine_name = str(self.spine_name)
+        clavicle_base_name = str(self.clavicle_name)
+        leg_start_base_name = str(self.leg_start_name)
+        arm_base_name = str(self.arm_name)
+        leg_base_name = str(self.leg_name)
+
+        bind_jnts_dict = {}
+        bind_jnts_keys = ["spine_bind_jnts", "arm_bind_jnts", "leg_bind_jnts"]
+
+        for jnts, i in enumerate(self.spine_bind_jnts, self.arm_bind_jnts, self.leg_bind_jnts):
+            if pm.intFieldGrp(jnts, query=True, value=True) > 0:
+                bind_jnts_dict[bind_jnts_keys[i]] = pm.intFieldGrp(jnts, query=True, value=True)
+            else:
+                print("Not enough bind joints (using 5 instead)")
+                bind_jnts_dict[bind_jnts_keys[i]] = 5
+
+        try:
+            spine_bind_jnts = int(self.spine_bind_jnts)
+            arm_bind_jnts   = int(self.arm_bind_jnts)
+            leg_bind_jnts   = int(self.leg_bind_jnts)
+        except ValueError:
+            pm.warning("Bind joints must be a number")
+            return
+
+
+
+
+
+"""spine = Spine(
     name="spine", 
     com_guide_pos=(0, 14, 0), 
     hip_guide_pos=(0, 12, 0), 
@@ -130,4 +186,4 @@ r_leg = Leg(
     kneeLock_guide_pos=(-4, 5, 8),
     fk_color=right_fk_color,
     ik_color=right_ik_color
-)
+)"""

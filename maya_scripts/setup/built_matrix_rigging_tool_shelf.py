@@ -34,15 +34,16 @@ def create_shelf():
                     pass
 
         py_root_module_cmd = "from maya_scripts.rig_module import create_root_module; create_root_module.CreateRootModule()"
-        py_limb_module_cmd = "from maya_scripts.rig_module import base_limb; base_limb.Limb()"
-        py_leg_module_cmd = "from maya_scripts.rig_module import leg; leg.Leg()"
-        py_spine_module_cmd = "from maya_scripts.rig_module import spine; spine.Spine()"
+        py_limb_module_cmd = "from maya_scripts.rig_module import base_limb; base_limb.LimbManager()"
+        py_leg_module_cmd = "from maya_scripts.rig_module import leg; leg.LegManager()"
+        py_spine_module_cmd = "from maya_scripts.rig_module import spine; spine.SpineManager()"
         #py_biped_module_cmd = "from maya_scripts.rig_module import full_body_test; full_body_test"
 
         root_icon = ICONS_PATH / "root.png"
         limb_icon = ICONS_PATH / "limb.png"
         leg_icon = ICONS_PATH / "leg.png"
         spine_icon = ICONS_PATH / "spine.png"
+        biped_icon = ICONS_PATH / "full_body.png"
 
         cmds.shelfButton(
             parent=shelf_name,
