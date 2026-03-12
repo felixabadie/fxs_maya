@@ -751,7 +751,8 @@ class LimbModule:
             upper_length = upper_elbowLock_lengthSwitch.output,
             lower_length = lower_elbowLock_lengthSwitch.output,
             total_length = clampedLength.output,
-            total_length_squared = clampedLength_squared.output
+            total_length_squared = clampedLength_squared.output,
+            float_value_2=self.float_value_2
             )
 
         upper_IK_cosValue = ik_solver["upper_cosValue"]
