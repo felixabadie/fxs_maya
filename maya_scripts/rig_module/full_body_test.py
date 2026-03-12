@@ -1,6 +1,6 @@
 import json
 import pymel.core as pm
-from prox_node_setup.generated_nodes import *
+from maya_scripts.prox_node_setup.generated_nodes import *
 from utilities import TextFieldHelper
 
 from rig_module.root import RootModule
@@ -49,7 +49,7 @@ class BipedManager:
                     pm.button(label="Cancel")
                     pm.button(label="OK", command=self.execute)
 
-    def execute(self):
+    def execute(self, *args):
         root_name = str(self.root_name)
         spine_name = str(self.spine_name)
         clavicle_base_name = str(self.clavicle_name)
@@ -63,9 +63,11 @@ class BipedManager:
         bind_jnts_dict = {}
         bind_jnts_keys = ["spine_bind_jnts", "arm_bind_jnts", "leg_bind_jnts"]
 
-        for jnts, i in enumerate(self.spine_bind_jnts, self.arm_bind_jnts, self.leg_bind_jnts):
-            if pm.intFieldGrp(jnts, query=True, value=True) > 0:
-                bind_jnts_dict[bind_jnts_keys[i]] = pm.intFieldGrp(jnts, query=True, value=True)
+        bind_jnts_list = [self.spine_bind_jnts, self.arm_bind_jnts, self.leg_bind_jnts]
+
+        for i, jnts in enumerate(bind_jnts_list):
+            if pm.intFieldGrp(jnts, query=True, value1=True) > 0:
+                bind_jnts_dict[bind_jnts_keys[i]] = pm.intFieldGrp(jnts, query=True, value1=True)
             else:
                 print("Not enough bind joints (using 5 instead)")
                 bind_jnts_dict[bind_jnts_keys[i]] = 5
@@ -77,6 +79,7 @@ class BipedManager:
         )
 
         spine = SpineModule(
+            parent_module=root_name,
             name=spine_name,
             bind_jnts=bind_jnts_dict["spine_bind_jnts"],
             com_guide_pos=(0, 14, 0), 

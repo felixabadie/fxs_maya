@@ -141,7 +141,7 @@ class LegManager:
 class LegModule:
 
     def __init__(self, parent_module:str, main_module:str, limb_type:str, limb_side:str, bind_jnts=10, upper_guide_pos:tuple = (4, 10, 0), lower_guide_pos:tuple = (0, 1, 0), 
-                 ankle_guide_pos:tuple = (0, 1, 0), foot_guide_pos:tuple = (0, 0, 0), foot_left_bank_guide_pos:tuple = (1, 0, 0), foot_right_bank_guide_pos:tuple = (-1, 0, 0), 
+                 ankle_guide_pos:tuple = (0, 1, 0), foot_guide_pos:tuple = (4, 0, 0), foot_left_bank_guide_pos:tuple = (1, 0, 0), foot_right_bank_guide_pos:tuple = (-1, 0, 0), 
                  foot_heel_guide_pos:tuple = (0, 0, -1), foot_end_guide_pos:tuple = (0, 0, 5), foot_ball_guide_pos:tuple = (0, 0, 3), kneeLock_guide_pos:tuple = (4, 5, 8), 
                  settings_guide_pos:tuple = (5, 13, -2), upper_guide_rot:tuple = (180, 0, 0), fk_color:list = [0, 0, 1], ik_color:list = [0, 0.85, 0.83]):
         """
@@ -1280,7 +1280,7 @@ class LegModule:
         foot_ball_WPos = translationFromMatrix(name=f"{self.name}_foot_ball_WPos")
         pm.connectAttr(foot_ball_localMatrix.outputMatrix, foot_ball_WPos.input_)
 
-        foot_end_WPos = translationFromMatrixDL(name=f"{self.name}_foot_end_WPos")
+        foot_end_WPos = translationFromMatrix(name=f"{self.name}_foot_end_WPos")
         pm.connectAttr(foot_end_localMatrix.outputMatrix, foot_end_WPos.input_)
 
         #helpers without autocompletion it sucks I know
