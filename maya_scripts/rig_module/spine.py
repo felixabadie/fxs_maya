@@ -34,6 +34,7 @@ class SpineManager:
             with pm.columnLayout(adj=True):
                 self.name = TextFieldHelper("Spine name: ")
                 self.bind_jnts = pm.intFieldGrp(label="Amount bind joints: ", numberOfFields=1)
+                self.parent = TextFieldHelper("Parent Group: ")
                 self.parent_output = TextFieldHelper("Parent Output Group: ")
                 self.parent_outputGuide = TextFieldHelper("Parent Output Guide: ")
                 self.com_guide_pos = CompoundFieldSlot("COM Position: ")
@@ -50,6 +51,7 @@ class SpineManager:
         
         try:
             name = self.name.control.getText()
+            parent = self.parent.control.getText()
         except AttributeError:
             name = "spine"
 
@@ -75,7 +77,7 @@ class SpineManager:
                 pm.warning(f"{attr_name} contains nonvalid values")
                 resolved_positions[attr_name] = None
 
-        kwargs = {"name": name, "bind_jnts": bind_jnts}
+        kwargs = {"parent_module": parent, "name": name, "bind_jnts": bind_jnts}
         for attr_name, value in resolved_positions.items():
             if value is not None:
                 kwargs[attr_name] = value
@@ -90,14 +92,14 @@ class SpineManager:
         
 
 class SpineModule:
-    def __init__(self, name:str = "spine", bind_jnts=10, com_guide_pos:tuple = (0, 14, 0), hip_guide_pos:tuple = (0, 12, 0), 
+    def __init__(self, parent_module:str, name:str = "spine", bind_jnts=10, com_guide_pos:tuple = (0, 14, 0), hip_guide_pos:tuple = (0, 12, 0), 
                  mid_guide_pos:tuple = (0, 0, 0), chest_guide_pos:tuple = (0, 24, 0), settings_guide_pos:tuple = (5, 16, 0)):
         
         self.name = name
         self.groups = create_groups(rig_module_name=self.name)
 
-        self.parent_input = transform(name=f"{self.name}_parent_input")
-        self.parentGuide_input = transform(name=f"{self.name}_parentGuide_input")
+        self.parent_input = transform(name=f"{self.name}_{parent_module}_input")
+        self.parentGuide_input = transform(name=f"{self.name}_{parent_module}Guide_input")
 
         self.bind_jnts = bind_jnts
 

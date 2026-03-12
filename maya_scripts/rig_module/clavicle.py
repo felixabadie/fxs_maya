@@ -31,6 +31,7 @@ class ClavicleManager:
             with pm.columnLayout(adj=True):
                 self.name = TextFieldHelper("Clavicle / Leg-start name: ")
                 self.limb_side = TextFieldHelper("Limb side ('L' or 'R'): ")
+                self.parent = TextFieldHelper("Parent Group: ")
                 self.parent_output = TextFieldHelper("Parent Output Group: ")
                 self.parent_outputGuide = TextFieldHelper("Parent Output Guide: ")
                 self.start_guide_pos = CompoundFieldSlot("Start position: ")
@@ -46,6 +47,7 @@ class ClavicleManager:
         try:
             name = self.name.control.getText()
             limb_side = self.limb_side.control.getText()
+            parent = self.parent.control.getText()
         except AttributeError:
             pm.error("Naming Problem")
 
@@ -71,7 +73,7 @@ class ClavicleManager:
                 pm.warning(f"{attr_name} contains nonvalid values")
                 resolved_positions[attr_name] = None
 
-        kwargs = {"limb_type": name, "limb_side": limb_side, "clavicle_ctrl_color": clavicle_ctrl_color}
+        kwargs = {"parent_module": parent, "limb_type": name, "limb_side": limb_side, "clavicle_ctrl_color": clavicle_ctrl_color}
         for attr_name, value in resolved_positions.items():
             if value is not None:
                 kwargs[attr_name] = value
@@ -86,7 +88,7 @@ class ClavicleManager:
 
 
 class ClavicleModule:
-    def __init__(self, limb_type:str, limb_side:str, start_guide_pos:tuple = (2, 24, 1), end_guide_pos:tuple = (3, 26, 0), clavicle_ctrl_color:list = [0, 0, 0]):
+    def __init__(self, parent_module:str, limb_type:str, limb_side:str, start_guide_pos:tuple = (2, 24, 1), end_guide_pos:tuple = (3, 26, 0), clavicle_ctrl_color:list = [0, 0, 0]):
 
         """
         Creates clavicle rigging module
@@ -116,8 +118,8 @@ class ClavicleModule:
         start_guide = create_guide(name=f"{self.name}_start_guide", position=start_guide_pos, color=guide_color)
         end_guide = create_guide(name=f"{self.name}_end_guide", position=end_guide_pos, color=guide_color)
 
-        self.parent_input = transform(name=f"{self.name}_parent_module_input")
-        self.parentGuide_input = transform(name=f"{self.name}_parent_moduleGuide_input")
+        self.parent_input = transform(name=f"{self.name}_{parent_module}_input")
+        self.parentGuide_input = transform(name=f"{self.name}_{parent_module}Guide_input")
 
         self.end_output = transform(name=f"{self.name}_self.end_output")
         self.endGuide_output = transform(name=f"{self.name}_self.endGuide_output")

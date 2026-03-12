@@ -49,6 +49,8 @@ class LegManager:
                 self.name = TextFieldHelper("Leg name: ")
                 self.limb_side = TextFieldHelper("Leg side ('L' or 'R'): ")
                 self.bind_jnts = pm.intFieldGrp(label="Amount of bind joints: ", numberOfFields=1)
+                self.parent = TextFieldHelper("Parent Group: ")
+                self.main = TextFieldHelper("Root Group")
                 self.parent_output = TextFieldHelper("Parent Output Group: ")
                 self.parent_outputGuide = TextFieldHelper("Parent Output Guide: ")
                 self.main_output = TextFieldHelper("Root Controller output group: ")
@@ -74,7 +76,9 @@ class LegManager:
         
         try:
             name = self.name.obj.control.getText()
-            limb_side = self.limb_side.obj.control.getText()
+            limb_side = self.limb_side.control.getText()
+            parent = self.parent.control.getText()
+            main = self.main.control.getText()
         except AttributeError:
             pm.error("Naming Error")
 
@@ -116,7 +120,7 @@ class LegManager:
                 pm.warning(f"{attr_name} contains nonvalid values")
                 resolved_positions[attr_name] = None
 
-        kwargs = {"limb_type": name, "limb_side": limb_side, "fk_color": fk_ctrl_color, "ik_color": ik_ctrl_color, "bind_jnts": bind_jnts}
+        kwargs = {"parent_module": parent, "main_module":main, "limb_type": name, "limb_side": limb_side, "fk_color": fk_ctrl_color, "ik_color": ik_ctrl_color, "bind_jnts": bind_jnts}
         for attr_name, value in resolved_positions.items():
             if value is not None:
                 kwargs[attr_name] = value

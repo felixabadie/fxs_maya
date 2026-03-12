@@ -40,6 +40,8 @@ class LimbManager:
                 self.name = TextFieldHelper("Limb name: ")
                 self.limb_side = TextFieldHelper("Limb side ('L' or 'R'): ")
                 self.bind_jnts = pm.intFieldGrp(label="Amount bind joints: ", numberOfFields=1)
+                self.parent = TextFieldHelper("Parent Group: ")
+                self.main = TextFieldHelper("Root Group")
                 self.parent_output = TextFieldHelper("Parent Output Group: ")
                 self.parent_outputGuide = TextFieldHelper("Parent Output Guide: ")
                 self.main_output = TextFieldHelper("Root Controller output group: ")
@@ -59,6 +61,9 @@ class LimbManager:
         try:
             name = self.name.control.getText()
             limb_side = self.limb_side.control.getText()
+            parent = self.parent.control.getText()
+            main = self.main.control.getText()
+
         except AttributeError:
             pm.error("Naming Error")
 
@@ -94,7 +99,7 @@ class LimbManager:
                 pm.warning(f"{attr_name} contains nonvalid values")
                 resolved_positions[attr_name] = None
 
-        kwargs = {"limb_type": name, "limb_side": limb_side, "fk_color": fk_ctrl_color, "ik_color": ik_ctrl_color, "bind_jnts": bind_jnts}
+        kwargs = {"parent_module": parent, "main_module":main, "limb_type": name, "limb_side": limb_side, "fk_color": fk_ctrl_color, "ik_color": ik_ctrl_color, "bind_jnts": bind_jnts}
         for attr_name, value in resolved_positions.items():
             if value is not None:
                 kwargs[attr_name] = value
@@ -113,7 +118,7 @@ class LimbManager:
 
 class LimbModule:
 
-    def __init__(self, limb_type:str, limb_side:str, bind_jnts=10, upper_guide_pos:tuple = (4, 25, 0), lower_guide_pos:tuple = (0, 0, 0), 
+    def __init__(self, parent_module:str, main_module:str, limb_type:str, limb_side:str, bind_jnts=10, upper_guide_pos:tuple = (4, 25, 0), lower_guide_pos:tuple = (0, 0, 0), 
                  hand_guide_pos:tuple = (14, 25, 0), elbowLock_guide_pos:tuple = (9, 25, -7), settings_guide_pos:tuple = (5, 25, -4), 
                  upper_guide_rot:tuple = (0, 0, 0), fk_color:list = [0, 0, 1], ik_color:list = [0, 0.85, 0.83]):
         
@@ -185,10 +190,10 @@ class LimbModule:
         lower_guide.translateZ.set(lock=True)
         lower_guide.node.setLimit("translateMinY", 0)
 
-        self.main_input = transform(name=f"{self.name}_main_module_input")
-        self.mainGuide_input = transform(name=f"{self.name}_main_moduleGuide_input")
-        self.parent_module_input = transform(name=f"{self.name}_parent_module_input")
-        self.parent_moduleGuide_input = transform(name=f"{self.name}_parent_moduleGuide_input")
+        self.main_input = transform(name=f"{self.name}_{main_module}_input")
+        self.mainGuide_input = transform(name=f"{self.name}_{main_module}Guide_input")
+        self.parent_module_input = transform(name=f"{self.name}_{parent_module}_input")
+        self.parent_moduleGuide_input = transform(name=f"{self.name}_{parent_module}Guide_input")
 
         self.input_list = [parent_module, main_module, "worldSpace"]
 
