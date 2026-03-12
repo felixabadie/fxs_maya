@@ -75,7 +75,7 @@ class LegManager:
     def execute(self, *args):
         
         try:
-            name = self.name.obj.control.getText()
+            name = self.name.control.getText()
             limb_side = self.limb_side.control.getText()
             parent = self.parent.control.getText()
             main = self.main.control.getText()
