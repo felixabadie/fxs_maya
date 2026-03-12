@@ -969,7 +969,7 @@ class LimbModule:
             lower_ribbon_ctrl = lower_ribbon_ctrl.worldMatrix[0],
             lower_end_ribbon_ctrl = lower_end_ribbon_ctrl.worldMatrix[0],
             lower_midpoint_ctrl = lower_midpoint_ctrl.worldMatrix[0],
-            hand_WM = hand_WM.matrixSum
+            end_WM = hand_WM.matrixSum
         )
 
         pm.connectAttr(lower_tangent.outputMatrix, lower_ribbon_pin_transform_grp.offsetParentMatrix)
