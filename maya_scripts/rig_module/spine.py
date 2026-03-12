@@ -355,7 +355,7 @@ class SpineModule:
         ribbon, ribbonShape = rebuild_nurbsPlane(
             module_name=self.name,
             groups=self.groups,
-            input_plane=old_ribbonShape, 
+            input_plane=old_ribbon, 
             spans_U=60, 
             spans_V=4, 
             degree_U=1, 

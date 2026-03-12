@@ -122,21 +122,7 @@ class LimbModule:
                  hand_guide_pos:tuple = (14, 25, 0), elbowLock_guide_pos:tuple = (9, 25, -7), settings_guide_pos:tuple = (5, 25, -4), 
                  upper_guide_rot:tuple = (0, 0, 0), fk_color:list = [0, 0, 1], ik_color:list = [0, 0.85, 0.83]):
         
-        self.win_id = "fxs_limb_rigging_win"
-
-        if pm.window(self.win_id, query=True, exists=True):
-            pm.deleteUI(self.win_id)
-
-        with pm.window(self.win_id, title="Arm or basic Limb Rigging Module"):
-            with pm.columnLayout(adj=True):
-                self.limb_type = TextFieldHelper("Module name: ")
-                self.limb_side = TextFieldHelper("Limb side ('L' or 'R'): ")
-                self.bind_jnts = TextFieldHelper("Amount bind joints: ")
-                self.root_module = TextFieldHelper("Rig root module: ")
-                self.parent_module = TextFieldHelper("parent module: ")
-
-        
-
+    
         
         """
         Creates a limb-rig-module based on the tutorials of Jean Paul Tossings. The module can be adapted thanks to guides and be repositioned at any time.
@@ -1024,7 +1010,7 @@ class LimbModule:
         ribbon, ribbon_shape = rebuild_nurbsPlane(
             module_name=self.name,
             groups=self.groups,
-            input_plane=old_ribbonShape, 
+            input_plane=old_ribbon, 
             spans_U=60, 
             spans_V=4, 
             degree_U=1, 

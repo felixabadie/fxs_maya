@@ -274,8 +274,11 @@ def create_bezier_curves(module_name, curve_points:dict):
 
 
 def rebuild_nurbsPlane(module_name, groups, input_plane, spans_U:int, spans_V:int, degree_U, degree_V):
+        
+        input_shape = input_plane.getShape()
+        
         rebSurface = rebuildSurface(name=f"{module_name}_{input_plane.getName()}_rebuildSurface")
-        pm.connectAttr(input_plane.worldSpace[0], rebSurface.inputSurface)
+        pm.connectAttr(input_shape.worldSpace[0], rebSurface.inputSurface)
         rebSurface.spansU.set(spans_U)
         rebSurface.spansV.set(spans_V)
         rebSurface.degreeU.set(degree_U)
