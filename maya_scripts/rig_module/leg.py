@@ -73,8 +73,8 @@ class LegManager:
     def execute(self, *args):
         
         try:
-            name = self.name.obj.name()
-            limb_side = self.limb_side.obj.name()
+            name = self.name.obj.control.getText()
+            limb_side = self.limb_side.obj.control.getText()
         except AttributeError:
             pm.error("Naming Error")
 

@@ -216,7 +216,7 @@ def get_local_ribbon_pin_position(pos_name):
         return positions.get(pos_name, (0, 0, 0))
 
 
-def setup_ribbon_system(module_name, groups, upper_WM, upper_midpoint_ctrl, lower_start_ribbon_ctrl, lower_ribbon_ctrl, lower_end_ribbon_ctrl, lower_midpoint_ctrl, hand_WM):
+def setup_ribbon_system(module_name, groups, upper_WM, upper_midpoint_ctrl, lower_start_ribbon_ctrl, lower_ribbon_ctrl, lower_end_ribbon_ctrl, lower_midpoint_ctrl, end_WM):
         pin_grp = transform(name=f"{module_name}_nurbsPin_grp")
         sections = {
             "upper": {"parent_matrix": upper_WM},
@@ -225,7 +225,7 @@ def setup_ribbon_system(module_name, groups, upper_WM, upper_midpoint_ctrl, lowe
             "lower": {"parent_matrix": lower_ribbon_ctrl},
             "lower_end": {"parent_matrix": lower_end_ribbon_ctrl},
             "lower_midpoint": {"parent_matrix": lower_midpoint_ctrl},
-            "hand": {"parent_matrix": hand_WM}
+            "hand": {"parent_matrix": end_WM}
         }
         curve_points = {'top': [], 'middle': [], 'down': []}
 

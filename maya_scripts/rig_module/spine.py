@@ -49,7 +49,7 @@ class SpineManager:
     def execute(self, *args):
         
         try:
-            name = self.name.obj.name()
+            name = self.name.control.getText()
         except AttributeError:
             name = "spine"
 
@@ -316,13 +316,13 @@ class SpineModule:
         curve_dict = setup_ribbon_system(
             module_name=self.name,
             groups=self.groups,
-            hip_ctrl=hip_localMatrix.outputMatrix,
-            hip_tangent=hip_tangent_ctrl.worldMatrix[0],
-            mid_start=mid_start_ctrl.worldMatrix[0],
-            mid_ctrl=mid_localMatrix.outputMatrix,
-            mid_end=mid_end_ctrl.worldMatrix[0],
-            chest_tangent=chest_tangent_ctrl.worldMatrix[0],
-            chest_ctrl=chest_localMatrix.outputMatrix
+            upper_WM=hip_localMatrix.outputMatrix,
+            upper_midpoint_ctrl=hip_tangent_ctrl.worldMatrix[0],
+            lower_start_ribbon_ctrl=mid_start_ctrl.worldMatrix[0],
+            lower_ribbon_ctrl=mid_localMatrix.outputMatrix,
+            lower_end_ribbon_ctrl=mid_end_ctrl.worldMatrix[0],
+            lower_midpoint_ctrl=chest_tangent_ctrl.worldMatrix[0],
+            end_WM=chest_localMatrix.outputMatrix
         )
 
         upper_bezier_curve = curve_dict["top_curve"]
