@@ -143,7 +143,7 @@ class LegModule:
     def __init__(self, parent_module:str, main_module:str, limb_type:str, limb_side:str, bind_jnts=10, upper_guide_pos:tuple = (4, 10, 0), lower_guide_pos:tuple = (0, 1, 0), 
                  ankle_guide_pos:tuple = (0, 1, 0), foot_guide_pos:tuple = (0, 0, 0), foot_left_bank_guide_pos:tuple = (1, 0, 0), foot_right_bank_guide_pos:tuple = (-1, 0, 0), 
                  foot_heel_guide_pos:tuple = (0, 0, -1), foot_end_guide_pos:tuple = (0, 0, 5), foot_ball_guide_pos:tuple = (0, 0, 3), kneeLock_guide_pos:tuple = (4, 5, 8), 
-                 settings_guide_pos:tuple = (5, 13, -2), upper_guide_rot:tuple = (0, 0, 0), fk_color:list = [0, 0, 1], ik_color:list = [0, 0.85, 0.83]):
+                 settings_guide_pos:tuple = (5, 13, -2), upper_guide_rot:tuple = (180, 0, 0), fk_color:list = [0, 0, 1], ik_color:list = [0, 0.85, 0.83]):
         """
         Creates a limb-rig-module based on the tutorials of Jean Paul Tossings. The module can be adapted thanks to guides and be repositioned at any time.
         The Module contains a math-based IK-Solver, an IK/FK Blend, manually scalable segments, softIK to prevent snapping and a ribbon.
@@ -1177,7 +1177,7 @@ class LegModule:
             lower_ribbon_ctrl = lower_ribbon_ctrl.worldMatrix[0],
             lower_end_ribbon_ctrl = lower_end_ribbon_ctrl.worldMatrix[0],
             lower_midpoint_ctrl = lower_midpoint_ctrl.worldMatrix[0],
-            ankle_WM = ankle_WM.matrixSum
+            end_WM = ankle_WM.matrixSum
         )
 
         pm.connectAttr(lower_tangent.outputMatrix, lower_ribbon_pin_transform_grp.offsetParentMatrix)
@@ -1231,6 +1231,7 @@ class LegModule:
 
         ribbon, ribbon_shape = rebuild_nurbsPlane(
             module_name=self.name,
+            groups=self.groups,
             input_plane=old_ribbon, 
             spans_U=60, 
             spans_V=4, 
