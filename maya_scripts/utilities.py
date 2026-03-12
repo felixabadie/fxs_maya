@@ -241,7 +241,7 @@ def setup_ribbon_system(module_name, groups, upper_WM, upper_midpoint_ctrl, lowe
                 pin_grp.visibility.set(0)
                 curve_points[height].append(tfm)
 
-        return create_bezier_curves(curve_points)
+        return create_bezier_curves(module_name, curve_points)
 
 
 def create_bezier_curves(module_name, curve_points:dict):

@@ -28,7 +28,7 @@ class RootManager:
     def execute(self, *args):
         
         try:
-            name = self.name.obj.name()
+            name = self.name.control.getText()
         except AttributeError:
             name = "root"
         ctrl_size = pm.floatFieldGrp(self.ctrl_size, query=True, value1=True)
