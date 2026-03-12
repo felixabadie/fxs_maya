@@ -72,17 +72,16 @@ class LegManager:
     
     def execute(self, *args):
         
-        name = str(self.name)
-        limb_side = str(self.limb_side)
-        parent_output = str(self.parent_output)
-        parent_outputGuide = str(self.parent_outputGuide)
-        main_output = str(self.main_output)
-        mainGuide_output = str(self.mainGuide_output)
+        try:
+            name = self.name.obj.name()
+            limb_side = self.limb_side.obj.name()
+        except AttributeError:
+            pm.error("Naming Error")
 
         if pm.intFieldGrp(self.bind_jnts, query=True, value1=True) > 0:
             bind_jnts = pm.intFieldGrp(self.bind_jnts, query=True, value=True)
         else:
-            print("Not enough bind joints (using 5 instead)")
+            pm.warning("Not enough bind joints (using 5 instead)")
             bind_jnts = 5
         
         if limb_side == "L":
@@ -125,11 +124,11 @@ class LegManager:
         self.module = LegModule(**kwargs)
 
         try:
-            pm.connectAttr(f"{parent_output}.offsetParentMatrix", f"{self.module.out_parent_input}.offsetParentMatrix")
-            pm.connectAttr(f"{parent_outputGuide}.offsetParentMatrix", f"{self.module.out_parentGuide_input}.offsetParentMatrix")
+            pm.connectAttr(f"{self.parent_output.obj}.offsetParentMatrix", f"{self.module.out_parent_input}.offsetParentMatrix")
+            pm.connectAttr(f"{self.parent_outputGuide.obj}.offsetParentMatrix", f"{self.module.out_parentGuide_input}.offsetParentMatrix")
             
-            pm.connectAttr(f"{main_output}.offsetParentMatrix", f"{self.module.out_main_input}.offsetParentMatrix")
-            pm.connectAttr(f"{mainGuide_output}.offsetParentMatrix", f"{self.module.out_mainGuide_input}.offsetParentMatrix")
+            pm.connectAttr(f"{self.main_output.obj}.offsetParentMatrix", f"{self.module.out_main_input}.offsetParentMatrix")
+            pm.connectAttr(f"{self.mainGuide_output.obj}.offsetParentMatrix", f"{self.module.out_mainGuide_input}.offsetParentMatrix")
         except:
             print("Parent Module connection not possible, manual connection requiered")
 

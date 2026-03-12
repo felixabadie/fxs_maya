@@ -29,7 +29,7 @@ class ClavicleManager:
 
         with pm.window(self.win_id, title="Clavicle Riggig Module") as win:
             with pm.columnLayout(adj=True):
-                self.name = TextFieldHelper("Clavivle / Leg-start name: ")
+                self.name = TextFieldHelper("Clavicle / Leg-start name: ")
                 self.limb_side = TextFieldHelper("Limb side ('L' or 'R'): ")
                 self.parent_output = TextFieldHelper("Parent Output Group: ")
                 self.parent_outputGuide = TextFieldHelper("Parent Output Guide: ")
@@ -43,17 +43,18 @@ class ClavicleManager:
     
     def execute(self, *args):
         
-        name = str(self.name)
-        limb_side = str(self.limb_side)
-        parent_output = str(self.parent_output)
-        parent_outputGuide = str(self.parent_outputGuide)
+        try:
+            name = self.name.obj.name()
+            limb_side = self.limb_side.obj.name()
+        except AttributeError:
+            pm.error("Naming Problem")
 
         if limb_side == "L":
             clavicle_ctrl_color = left_fk_color
         elif limb_side == "R":
             clavicle_ctrl_color = right_fk_color
         else:
-            print("Problem with clavicle limb side")
+            pm.error("Clavicle side problem")
 
         guide_positions = {
             "start_guide_pos": self.start_guide_pos,
@@ -78,8 +79,8 @@ class ClavicleManager:
         self.module = ClavicleModule(**kwargs)
 
         try:
-            pm.connectAttr(f"{parent_output}.offsetParentMatrix", f"{self.module.out_parent_input}.offsetParentMatrix")
-            pm.connectAttr(f"{parent_outputGuide}.offsetParentMatrix", f"{self.module.out_parentGuide_input}.offsetParentMatrix")
+            pm.connectAttr(f"{self.parent_output.obj}.offsetParentMatrix", f"{self.module.out_parent_input}.offsetParentMatrix")
+            pm.connectAttr(f"{self.parent_outputGuide.obj}.offsetParentMatrix", f"{self.module.out_parentGuide_input}.offsetParentMatrix")
         except:
             print("Parent Module connection not possible, manual connection requiered")
 

@@ -1,7 +1,7 @@
 import pymel.core as pm
 from maya_scripts import control
 from maya_scripts.prox_node_setup.generated_nodes import *
-from maya_scripts.utilities import create_groups, create_guide
+from maya_scripts.utilities import create_groups, create_guide, TextFieldHelper
 
 guide_color = (1, 1, 1)
 god_color = (1, 0, 1)
@@ -18,7 +18,7 @@ class RootManager:
 
         with pm.window(self.win_id, title="Root Rigging Module") as win:
             with pm.columnLayout(adj=True):
-                self.name = pm.textField(text="Enter Name: ", editable=True)
+                self.name = TextFieldHelper("Enter Name: ")
                 self.ctrl_size = pm.floatFieldGrp(label="Control Size", numberOfFields=1, value1=0.0)
                 
                 with pm.horizontalLayout():
@@ -27,7 +27,10 @@ class RootManager:
 
     def execute(self, *args):
         
-        name = pm.textField(self.name, query=True, text=True)
+        try:
+            name = self.name.obj.name()
+        except AttributeError:
+            name = "root"
         ctrl_size = pm.floatFieldGrp(self.ctrl_size, query=True, value1=True)
 
         module = RootModule(name=name, ctrl_size=ctrl_size)
@@ -40,9 +43,9 @@ class RootModule:
 
         root_guide = create_guide(name=f"{self.name}_guide", color=guide_color)
 
-        root_god_ctrl = control.create_circle_ctrl(name=f"{self.name}_god_ctrl", ctrl_size=ctrl_size, color=god_color)
-        root_demigod_ctrl = control.create_circle_ctrl(name=f"{self.name}_demigod_ctrl", ctrl_size=ctrl_size-1, color=demigod_color)
-        root_main_ctrl = control.create_circle_ctrl(name=f"{self.name}_main_ctrl", ctrl_size=ctrl_size-2, color=main_color)
+        root_god_ctrl = control.create_circle_ctrl(name=f"{self.name}_god_ctrl", ctrl_size=ctrl_size, normal=(0, 1, 0), color=god_color)
+        root_demigod_ctrl = control.create_circle_ctrl(name=f"{self.name}_demigod_ctrl", ctrl_size=ctrl_size-1, normal=(0, 1, 0), color=demigod_color)
+        root_main_ctrl = control.create_circle_ctrl(name=f"{self.name}_main_ctrl", ctrl_size=ctrl_size-2, normal=(0, 1, 0), color=main_color)
 
         pm.connectAttr(root_guide.worldMatrix[0], root_god_ctrl.offsetParentMatrix)
         pm.connectAttr(root_god_ctrl.worldMatrix[0], root_demigod_ctrl.offsetParentMatrix)
@@ -63,9 +66,9 @@ class RootModule:
         for group_name, nodes in outliner_data.items():
             for node in nodes:
                 try:
-                    pm.parent(node.node, self.groups[group_name].name)
+                    pm.parent(node.node, self.groups[group_name].node)
                 except:
-                    pm.parent(node, self.groups[group_name].name)
+                    pm.parent(node, self.groups[group_name].node)
     
 
     @property

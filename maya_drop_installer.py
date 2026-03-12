@@ -63,7 +63,7 @@ def create_userSetup():
         "import pymel.core as pm",
         'importlib.import_module("capito.maya.setup")',
         "from pose_estimation.sourcecode.setup import add_shelves",
-        "from maya_scripts.setup import built_matrix_rigging_tool_shelf"
+        "from maya_scripts.setup import built_matrix_rigging_tool_shelf",
         "add_shelves()",
         "built_matrix_rigging_tool_shelf()"
     ]
