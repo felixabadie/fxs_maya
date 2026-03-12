@@ -102,18 +102,18 @@ class LimbManager:
         self.module = LimbModule(**kwargs)
 
         try:
-            pm.connectAttr(f"{self.parent_output.obj}.offsetParentMatrix", f"{self.module.out_parent_input}.offsetParentMatrix")
-            pm.connectAttr(f"{self.parent_outputGuide.obj}.offsetParentMatrix", f"{self.module.out_parentGuide_input}.offsetParentMatrix")
+            pm.connectAttr(self.parent_output.obj.offsetParentMatrix, self.module.out_parent_input.offsetParentMatrix)
+            pm.connectAttr(self.parent_outputGuide.obj.offsetParentMatrix, self.module.out_parentGuide_input.offsetParentMatrix)
             
-            pm.connectAttr(f"{self.main_output.obj}.offsetParentMatrix", f"{self.module.out_main_input}.offsetParentMatrix")
-            pm.connectAttr(f"{self.mainGuide_output.obj}.offsetParentMatrix", f"{self.module.out_mainGuide_input}.offsetParentMatrix")
+            pm.connectAttr(self.main_output.obj.offsetParentMatrix, self.module.out_main_input.offsetParentMatrix)
+            pm.connectAttr(self.mainGuide_output.obj.offsetParentMatrix, self.module.out_mainGuide_input.offsetParentMatrix)
         except:
             print("Parent Module connection not possible, manual connection requiered")
 
 
 class LimbModule:
 
-    def __init__(self, main_module:str, parent_module:str , limb_type:str, limb_side:str, bind_jnts=10, upper_guide_pos:tuple = (4, 25, 0), lower_guide_pos:tuple = (0, 0, 0), 
+    def __init__(self, limb_type:str, limb_side:str, bind_jnts=10, upper_guide_pos:tuple = (4, 25, 0), lower_guide_pos:tuple = (0, 0, 0), 
                  hand_guide_pos:tuple = (14, 25, 0), elbowLock_guide_pos:tuple = (9, 25, -7), settings_guide_pos:tuple = (5, 25, -4), 
                  upper_guide_rot:tuple = (0, 0, 0), fk_color:list = [0, 0, 1], ik_color:list = [0, 0.85, 0.83]):
         
@@ -185,10 +185,10 @@ class LimbModule:
         lower_guide.translateZ.set(lock=True)
         lower_guide.node.setLimit("translateMinY", 0)
 
-        self.main_input = transform(name=f"{self.name}_{main_module}_input")
-        self.mainGuide_input = transform(name=f"{self.name}_{main_module}Guide_input")
-        self.parent_module_input = transform(name=f"{self.name}_{parent_module}_input")
-        self.parent_moduleGuide_input = transform(name=f"{self.name}_{parent_module}Guide_input")
+        self.main_input = transform(name=f"{self.name}_main_module_input")
+        self.mainGuide_input = transform(name=f"{self.name}_main_moduleGuide_input")
+        self.parent_module_input = transform(name=f"{self.name}_parent_module_input")
+        self.parent_moduleGuide_input = transform(name=f"{self.name}_parent_moduleGuide_input")
 
         self.input_list = [parent_module, main_module, "worldSpace"]
 

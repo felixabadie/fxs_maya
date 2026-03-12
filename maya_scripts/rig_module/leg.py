@@ -124,11 +124,11 @@ class LegManager:
         self.module = LegModule(**kwargs)
 
         try:
-            pm.connectAttr(f"{self.parent_output.obj}.offsetParentMatrix", f"{self.module.out_parent_input}.offsetParentMatrix")
-            pm.connectAttr(f"{self.parent_outputGuide.obj}.offsetParentMatrix", f"{self.module.out_parentGuide_input}.offsetParentMatrix")
+            pm.connectAttr(self.parent_output.obj.offsetParentMatrix, self.module.out_parent_input.offsetParentMatrix)
+            pm.connectAttr(self.parent_outputGuide.obj.offsetParentMatrix, self.module.out_parentGuide_input.offsetParentMatrix)
             
-            pm.connectAttr(f"{self.main_output.obj}.offsetParentMatrix", f"{self.module.out_main_input}.offsetParentMatrix")
-            pm.connectAttr(f"{self.mainGuide_output.obj}.offsetParentMatrix", f"{self.module.out_mainGuide_input}.offsetParentMatrix")
+            pm.connectAttr(self.main_output.obj.offsetParentMatrix, self.module.out_main_input.offsetParentMatrix)
+            pm.connectAttr(self.mainGuide_output.obj.offsetParentMatrix, self.module.out_mainGuide_input.offsetParentMatrix)
         except:
             print("Parent Module connection not possible, manual connection requiered")
 
@@ -136,7 +136,7 @@ class LegManager:
 
 class LegModule:
 
-    def __init__(self, main_module:str, parent_module:str , limb_type:str, limb_side:str, bind_jnts=10, upper_guide_pos:tuple = (4, 10, 0), lower_guide_pos:tuple = (0, 1, 0), 
+    def __init__(self, parent_module:str, main_module:str, limb_type:str, limb_side:str, bind_jnts=10, upper_guide_pos:tuple = (4, 10, 0), lower_guide_pos:tuple = (0, 1, 0), 
                  ankle_guide_pos:tuple = (0, 1, 0), foot_guide_pos:tuple = (0, 0, 0), foot_left_bank_guide_pos:tuple = (1, 0, 0), foot_right_bank_guide_pos:tuple = (-1, 0, 0), 
                  foot_heel_guide_pos:tuple = (0, 0, -1), foot_end_guide_pos:tuple = (0, 0, 5), foot_ball_guide_pos:tuple = (0, 0, 3), kneeLock_guide_pos:tuple = (4, 5, 8), 
                  settings_guide_pos:tuple = (5, 13, -2), upper_guide_rot:tuple = (0, 0, 0), fk_color:list = [0, 0, 1], ik_color:list = [0, 0.85, 0.83]):

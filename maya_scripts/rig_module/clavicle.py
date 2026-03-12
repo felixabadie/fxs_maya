@@ -79,14 +79,14 @@ class ClavicleManager:
         self.module = ClavicleModule(**kwargs)
 
         try:
-            pm.connectAttr(f"{self.parent_output.obj}.offsetParentMatrix", f"{self.module.out_parent_input}.offsetParentMatrix")
-            pm.connectAttr(f"{self.parent_outputGuide.obj}.offsetParentMatrix", f"{self.module.out_parentGuide_input}.offsetParentMatrix")
+            pm.connectAttr(self.parent_output.obj.offsetParentMatrix, self.module.out_parent_input.offsetParentMatrix)
+            pm.connectAttr(self.parent_outputGuide.obj.offsetParentMatrix, self.module.out_parentGuide_input.offsetParentMatrix)
         except:
-            print("Parent Module connection not possible, manual connection requiered")
+            pm.error("Parent Module connection not possible, manual connection requiered")
 
 
 class ClavicleModule:
-    def __init__(self, parent_module:str , limb_type:str, limb_side:str, start_guide_pos:tuple = (2, 24, 1), end_guide_pos:tuple = (3, 26, 0), clavicle_ctrl_color:list = [0, 0, 0]):
+    def __init__(self, limb_type:str, limb_side:str, start_guide_pos:tuple = (2, 24, 1), end_guide_pos:tuple = (3, 26, 0), clavicle_ctrl_color:list = [0, 0, 0]):
 
         """
         Creates clavicle rigging module
@@ -116,8 +116,8 @@ class ClavicleModule:
         start_guide = create_guide(name=f"{self.name}_start_guide", position=start_guide_pos, color=guide_color)
         end_guide = create_guide(name=f"{self.name}_end_guide", position=end_guide_pos, color=guide_color)
 
-        self.parent_input = transform(name=f"{self.name}_{parent_module}_input")
-        self.parentGuide_input = transform(name=f"{self.name}_{parent_module}Guide_input")
+        self.parent_input = transform(name=f"{self.name}_parent_module_input")
+        self.parentGuide_input = transform(name=f"{self.name}_parent_moduleGuide_input")
 
         self.end_output = transform(name=f"{self.name}_self.end_output")
         self.endGuide_output = transform(name=f"{self.name}_self.endGuide_output")

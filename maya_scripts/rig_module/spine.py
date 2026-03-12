@@ -83,10 +83,10 @@ class SpineManager:
         self.module = SpineModule(**kwargs)
         
         try:
-            pm.connectAttr(f"{self.parent_output.obj}.offsetParentMatrix", f"{self.module.out_parent_input}.offsetParentMatrix")
-            pm.connectAttr(f"{self.parent_outputGuide.obj}.offsetParentMatrix", f"{self.module.out_parentGuide_input}.offsetParentMatrix")
+            pm.connectAttr(self.parent_output.obj.offsetParentMatrix, self.module.out_parent_input.offsetParentMatrix)
+            pm.connectAttr(self.parent_outputGuide.obj.offsetParentMatrix, self.module.out_parentGuide_input.offsetParentMatrix)
         except:
-            print("Parent Module connection not possible, manual connection requiered")
+            pm.error("Parent Module connection not possible, manual connection requiered")
         
 
 class SpineModule:
@@ -98,6 +98,8 @@ class SpineModule:
 
         self.parent_input = transform(name=f"{self.name}_parent_input")
         self.parentGuide_input = transform(name=f"{self.name}_parentGuide_input")
+
+        self.bind_jnts = bind_jnts
 
         com_guide = create_guide(name=f"{self.name}_com_guide", position=com_guide_pos, color=guide_color)
         hip_guide = create_guide(name=f"{self.name}_hip_guide", position=hip_guide_pos, color=guide_color)
