@@ -14,7 +14,8 @@ def get_all():
     return _module_registry
 
 def remove_module(name):
-    return _module_registry.pop(name)
+    if name in _module_registry:
+        del _module_registry[name]
 
 def remove_all():
     return _module_registry.clear()
