@@ -50,12 +50,12 @@ class BipedManager:
                     pm.button(label="OK", command=self.execute)
 
     def execute(self, *args):
-        root_name = str(self.root_name)
-        spine_name = str(self.spine_name)
-        clavicle_base_name = str(self.clavicle_name)
-        leg_start_base_name = str(self.leg_start_name)
-        arm_base_name = str(self.arm_name)
-        leg_base_name = str(self.leg_name)
+        root_name = self.root_name.control.getText()
+        spine_name = self.spine_name.control.getText()
+        clavicle_base_name = self.clavicle_name.control.getText()
+        leg_start_base_name = self.leg_start_name.control.getText()
+        arm_base_name = self.arm_name.control.getText()
+        leg_base_name = self.leg_name.control.getText()
 
         left_prefix = "L"
         right_prefix = "R"
@@ -90,7 +90,7 @@ class BipedManager:
         )
 
         l_arm_clavicle = ClavicleModule(
-            parent_module=spine.module_name,
+            parent_module=spine_name,
             limb_type=clavicle_base_name,
             limb_side=left_prefix,
             start_guide_pos=(2, 24, 1), 
@@ -99,7 +99,7 @@ class BipedManager:
         )
 
         l_arm = LimbModule(
-            parent_module=l_arm_clavicle.module_name,
+            parent_module=clavicle_base_name,
             main_module=root_name,
             limb_type=arm_base_name,
             limb_side=left_prefix,
@@ -112,7 +112,7 @@ class BipedManager:
         )
 
         r_arm_clavicle = ClavicleModule(
-            parent_module=spine.module_name,
+            parent_module=spine_name,
             limb_type=clavicle_base_name,
             limb_side=right_prefix,
             start_guide_pos=(-2, 24, 1),
@@ -121,7 +121,7 @@ class BipedManager:
         )
 
         r_arm = LimbModule(
-            parent_module=r_arm_clavicle.module_name,
+            parent_module=clavicle_base_name,
             main_module=root_name,
             limb_type=arm_base_name,
             limb_side=right_prefix,
@@ -134,7 +134,7 @@ class BipedManager:
         )
 
         l_leg_start = ClavicleModule(
-            parent_module=spine.module_name,
+            parent_module=spine_name,
             limb_type=leg_start_base_name,
             limb_side=left_prefix,
             start_guide_pos=(2, 12, 0),
@@ -143,7 +143,7 @@ class BipedManager:
         )
 
         l_leg = LegModule(
-            parent_module=l_leg_start.module_name,
+            parent_module=leg_start_base_name,
             main_module=root_name,
             limb_type=leg_base_name,
             limb_side=left_prefix,
@@ -164,16 +164,16 @@ class BipedManager:
         )
 
         r_leg_start = ClavicleModule(
-            parent_module=spine.module_name,
+            parent_module=spine_name,
             limb_type=leg_start_base_name,
             limb_side=right_prefix,
-            start_guide_pos=(2, 12, 0),
-            end_guide_pos=(3, 10, 0),
+            start_guide_pos=(-2, 12, 0),
+            end_guide_pos=(-3, 10, 0),
             clavicle_ctrl_color=left_fk_color
         )
 
         r_leg = LegModule(
-            parent_module=r_leg_start.module_name,
+            parent_module=leg_start_base_name,
             main_module=root_name,
             limb_type=leg_base_name,
             limb_side=right_prefix,
@@ -193,9 +193,12 @@ class BipedManager:
             ik_color=right_ik_color
         )
 
-        for mod in [spine, l_arm, r_arm, l_leg, r_leg]:
+        for mod in [l_arm, r_arm, l_leg, r_leg]:
             pm.connectAttr(root.out_main_output.offsetParentMatrix, mod.out_main_input.offsetParentMatrix)
             pm.connectAttr(root.out_mainGuide_output.offsetParentMatrix, mod.out_mainGuide_input.offsetParentMatrix)
+
+        pm.connectAttr(root.out_main_output.offsetParentMatrix, spine.out_parent_input.offsetParentMatrix)
+        pm.connectAttr(root.out_mainGuide_output.offsetParentMatrix, spine.out_parentGuide_input.offsetParentMatrix)
 
         pm.connectAttr(spine.out_chest_output.offsetParentMatrix, l_arm_clavicle.out_parent_input.offsetParentMatrix)
         pm.connectAttr(spine.out_chestGuide_output.offsetParentMatrix, l_arm_clavicle.out_parentGuide_input.offsetParentMatrix)
