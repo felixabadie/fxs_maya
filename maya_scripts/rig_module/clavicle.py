@@ -115,6 +115,7 @@ class ClavicleModule:
         self.name = f"{limb_type}_{limb_side}"
         self.limb_type = limb_type
         self.limb_side = limb_side
+        self.parent_module = parent_module
 
         groups = create_groups(rig_module_name=self.name)
         self.groups = groups
@@ -243,12 +244,15 @@ class ClavicleModule:
         """Mirror module based on list input marking the position to be mirrored"""
         opposite_side = "R" if self.limb_side == "L" else "L"
         opposite_color = right_fk_color if self.limb_side == "L" else left_fk_color
+        
+        current_guide_positions = self.get_guide_positions()
+        
         ClavicleModule(
-            parent_module=...,
+            parent_module=self.parent_module,
             limb_type=self.limb_type,
             limb_side=opposite_side,
-            start_guide_pos=mirror_position(position=self.start_guide_pos, negate_axis=axis),
-            end_guide_pos=mirror_position(position=self.end_guide_pos, negate_axis=axis),
+            start_guide_pos=mirror_position(position=current_guide_positions["start"], negate_axis=axis),
+            end_guide_pos=mirror_position(position=current_guide_positions["end"], negate_axis=axis),
             clavicle_ctrl_color=opposite_color
         )
     
@@ -258,6 +262,11 @@ class ClavicleModule:
             "start": pm.xform(f"{self.start_guide}", q=True, ws=True, t=True),
             "end":   pm.xform(f"{self.end_guide}",   q=True, ws=True, t=True),
         }
+
+    def del_module(self):
+        """Remove registry entry and delete self"""
+        registry.remove_module(self.name)
+        pm.delete(self.groups)
 
     @property
     def rig_module(self):

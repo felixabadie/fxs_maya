@@ -1,6 +1,7 @@
 import json
-from maya_scripts import control
 import pymel.core as pm
+from maya_scripts import control
+from maya_scripts import registry
 from maya_scripts.prox_node_setup.generated_nodes import *
 from maya_scripts.utilities import (
     create_guide, 
@@ -102,6 +103,12 @@ class SpineModule:
         self.parentGuide_input = transform(name=f"{self.name}_{parent_module}Guide_input")
 
         self.bind_jnts = bind_jnts
+
+        registry.register(self.name, self)
+        root_node = self.groups["SETUP"].node
+        if not root_node.hasAttribute("moduleRegistryKey"):
+            root_node.addAttr(attr="moduleRegistryKey", dataType="string", hidden=False, keyable=True)
+        root_node.moduleRegistryKey.set(self.name)
 
         self.com_guide = create_guide(name=f"{self.name}_com_guide", position=com_guide_pos, color=guide_color)
         self.hip_guide = create_guide(name=f"{self.name}_hip_guide", position=hip_guide_pos, color=guide_color)
@@ -404,6 +411,11 @@ class SpineModule:
             "mid": pm.xform(f"{self.mid_guide}",   q=True, ws=True, t=True),
             "chest": pm.xform(f"{self.chest_guide}",   q=True, ws=True, t=True)
         }
+
+    def del_module(self):
+        """Remove registry entry and delete self"""
+        registry.remove_module(self.name)
+        pm.delete(self.groups)
 
     @property
     def rig_module(self):

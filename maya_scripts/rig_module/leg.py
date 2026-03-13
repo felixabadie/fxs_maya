@@ -1,6 +1,7 @@
 import json
-from maya_scripts import control
 import pymel.core as pm
+from maya_scripts import control
+from maya_scripts import registry
 from maya_scripts.prox_node_setup.generated_nodes import *
 from maya_scripts.utilities import (
     create_guide, 
@@ -17,6 +18,7 @@ from maya_scripts.utilities import (
     hierarchy_prep,
     lock_ctrl_attrs, 
     create_ik_solver_setup,
+    mirror_position,
     TextFieldHelper,
     CompoundFieldSlot
 )
@@ -193,29 +195,37 @@ class LegModule:
         self.limb_side = limb_side
         self.upper_guide_rot = upper_guide_rot
         self.bind_jnts = bind_jnts
+        self.parent_module = parent_module
+        self.main_module = main_module
         
         self.groups = create_groups(rig_module_name=self.name)
-        
-        upper_guide = create_guide(name=f"{self.name}_upper_guide", position=upper_guide_pos, color=guide_color)
-        upper_guide.rotate.set(self.upper_guide_rot)
-        lower_guide = create_guide(name=f"{self.name}_lower_guide", position=lower_guide_pos, color=guide_color)
-        ankle_guide = create_guide(name=f"{self.name}_ankle_guide", position=ankle_guide_pos, color=guide_color)
-        foot_guide = create_guide(name=f"{self.name}_foot_guide", position=foot_guide_pos, color=guide_color)
-        foot_left_bank_guide = create_guide(name=f"{self.name}_foot_left_bank_guide", position=foot_left_bank_guide_pos, color=guide_color)
-        foot_right_bank_guide = create_guide(name=f"{self.name}_foot_right_bank_guide", position=foot_right_bank_guide_pos, color=guide_color)
-        foot_heel_guide = create_guide(name=f"{self.name}_foot_heel_guide", position=foot_heel_guide_pos, color=guide_color)
-        foot_ball_guide = create_guide(name=f"{self.name}_foot_ball_guide", position=foot_ball_guide_pos, color=guide_color)
-        foot_end_guide = create_guide(name=f"{self.name}_foot_end_guide", position=foot_end_guide_pos, color=guide_color)
 
-        for guide in [foot_heel_guide, ankle_guide, foot_left_bank_guide, foot_right_bank_guide, foot_ball_guide, foot_end_guide]:
-            pm.connectAttr(foot_guide.worldMatrix[0], guide.offsetParentMatrix)
+        registry.register(self.name, self)
+        root_node = self.groups["SETUP"].node
+        if not root_node.hasAttribute("moduleRegistryKey"):
+            root_node.addAttr(attr="moduleRegistryKey", dataType="string", hidden=False, keyable=True)
+        root_node.moduleRegistryKey.set(self.name)
+        
+        self.upper_guide = create_guide(name=f"{self.name}_upper_guide", position=upper_guide_pos, color=guide_color)
+        self.upper_guide.rotate.set(self.upper_guide_rot)
+        self.lower_guide = create_guide(name=f"{self.name}_lower_guide", position=lower_guide_pos, color=guide_color)
+        self.ankle_guide = create_guide(name=f"{self.name}_ankle_guide", position=ankle_guide_pos, color=guide_color)
+        self.foot_guide = create_guide(name=f"{self.name}_foot_guide", position=foot_guide_pos, color=guide_color)
+        self.foot_left_bank_guide = create_guide(name=f"{self.name}_foot_left_bank_guide", position=foot_left_bank_guide_pos, color=guide_color)
+        self.foot_right_bank_guide = create_guide(name=f"{self.name}_foot_right_bank_guide", position=foot_right_bank_guide_pos, color=guide_color)
+        self.foot_heel_guide = create_guide(name=f"{self.name}_foot_heel_guide", position=foot_heel_guide_pos, color=guide_color)
+        self.foot_ball_guide = create_guide(name=f"{self.name}_foot_ball_guide", position=foot_ball_guide_pos, color=guide_color)
+        self.foot_end_guide = create_guide(name=f"{self.name}_foot_end_guide", position=foot_end_guide_pos, color=guide_color)
+
+        for guide in [self.foot_heel_guide, self.ankle_guide, self.foot_left_bank_guide, self.foot_right_bank_guide, self.foot_ball_guide, self.foot_end_guide]:
+            pm.connectAttr(self.foot_guide.worldMatrix[0], guide.offsetParentMatrix)
 
         self.kneeLock_guide = create_guide(name=f"{self.name}_kneeLock_guide", position=kneeLock_guide_pos, color=guide_color)
 
-        settings_guide = create_guide(name=f"{self.name}_settings_guide", position=settings_guide_pos, color=guide_color)
+        self.settings_guide = create_guide(name=f"{self.name}_settings_guide", position=settings_guide_pos, color=guide_color)
 
-        lower_guide.translateZ.set(lock=True)
-        lower_guide.node.setLimit("translateMinY", 0)
+        self.lower_guide.translateZ.set(lock=True)
+        self.lower_guide.node.setLimit("translateMinY", 0)
 
         self.main_input = transform(name=f"{self.name}_{main_module}_input")
         self.mainGuide_input = transform(name=f"{self.name}_{main_module}Guide_input")
@@ -260,7 +270,7 @@ class LegModule:
         pm.connectAttr(self.parent_module_input_noScaleM.outputMatrix, self.parent_module_input_WM.matrixIn[0])
         pm.connectAttr(self.main_input.offsetParentMatrix, self.parent_module_input_WM.matrixIn[1])
         
-        settings_POM = create_pom(module_name=self.name, name="settings_POM", source_matrix = settings_guide.worldMatrix[0], parentGuide_input = self.parent_moduleGuide_input.worldInverseMatrix[0])
+        settings_POM = create_pom(module_name=self.name, name="settings_POM", source_matrix = self.settings_guide.worldMatrix[0], parentGuide_input = self.parent_moduleGuide_input.worldInverseMatrix[0])
 
         settings_WM = multMatrix(name=f"{self.name}_settings_WM")
         pm.connectAttr(settings_POM.matrixSum, settings_WM.matrixIn[0])
@@ -269,21 +279,21 @@ class LegModule:
         pm.connectAttr(settings_WM.matrixSum, self.settings_ctrl.offsetParentMatrix)
 
         self.orientPlane_guide = aimMatrix(name=f"{self.name}_orientPlane_guide")
-        pm.connectAttr(upper_guide.worldMatrix[0], self.orientPlane_guide.inputMatrix)
-        pm.connectAttr(ankle_guide.worldMatrix[0], self.orientPlane_guide.primaryTargetMatrix)
-        pm.connectAttr(upper_guide.worldMatrix[0],self.orientPlane_guide.secondaryTargetMatrix)
+        pm.connectAttr(self.upper_guide.worldMatrix[0], self.orientPlane_guide.inputMatrix)
+        pm.connectAttr(self.ankle_guide.worldMatrix[0], self.orientPlane_guide.primaryTargetMatrix)
+        pm.connectAttr(self.upper_guide.worldMatrix[0],self.orientPlane_guide.secondaryTargetMatrix)
         self.orientPlane_guide.secondaryMode.set(2)
         self.orientPlane_guide.secondaryTargetVector.set(0, 0, -1)
 
         lower_ctrl_guide_WM = blendMatrix(name=f"{self.name}_lower_ctrl_guide_WM")
         pm.connectAttr(self.orientPlane_guide.outputMatrix, lower_ctrl_guide_WM.inputMatrix)
-        pm.connectAttr(ankle_guide.worldMatrix[0], lower_ctrl_guide_WM.target[0].targetMatrix)
+        pm.connectAttr(self.ankle_guide.worldMatrix[0], lower_ctrl_guide_WM.target[0].targetMatrix)
         lower_ctrl_guide_WM.target[0].useMatrix.set(True)
         lower_ctrl_guide_WM.target[0].weight.set(0.5)
         for attr in ["rotateWeight", "rotateWeight", "shearWeight"]:
             pm.setAttr(f"{lower_ctrl_guide_WM.target[0]}.{attr}", 0)
         
-        pm.connectAttr(lower_ctrl_guide_WM.outputMatrix, lower_guide.offsetParentMatrix)
+        pm.connectAttr(lower_ctrl_guide_WM.outputMatrix, self.lower_guide.offsetParentMatrix)
 
         #===============================================================================================================================================
         #===============================================================================================================================================
@@ -324,12 +334,12 @@ class LegModule:
         self.kneeLock_list = [main_module, "worldSpace"]
 
         upper_initial_length = distanceBetween(name=f"{self.name}_upper_initial_length")
-        pm.connectAttr(upper_guide.worldMatrix[0], upper_initial_length.inMatrix1)
-        pm.connectAttr(lower_guide.worldMatrix[0], upper_initial_length.inMatrix2)
+        pm.connectAttr(self.upper_guide.worldMatrix[0], upper_initial_length.inMatrix1)
+        pm.connectAttr(self.lower_guide.worldMatrix[0], upper_initial_length.inMatrix2)
 
         lower_initial_Length = distanceBetween(name=f"{self.name}_lower_initial_Length")
-        pm.connectAttr(lower_guide.worldMatrix[0], lower_initial_Length.inMatrix1)
-        pm.connectAttr(ankle_guide.worldMatrix[0], lower_initial_Length.inMatrix2)
+        pm.connectAttr(self.lower_guide.worldMatrix[0], lower_initial_Length.inMatrix1)
+        pm.connectAttr(self.ankle_guide.worldMatrix[0], lower_initial_Length.inMatrix2)
 
         upper_length_manualScale = multiply(name=f"{self.name}_upper_length_manualScale")
         pm.connectAttr(upper_initial_length.distance, upper_length_manualScale.input_[0])
@@ -345,9 +355,9 @@ class LegModule:
 
 
         self.upper_FK_guide_outWM = aimMatrix(name=f"{self.name}_upper_FK_guide_outWM")
-        pm.connectAttr(upper_guide.worldMatrix[0], self.upper_FK_guide_outWM.inputMatrix)
-        pm.connectAttr(lower_guide.worldMatrix[0], self.upper_FK_guide_outWM.primaryTargetMatrix)
-        pm.connectAttr(upper_guide.worldMatrix[0], self.upper_FK_guide_outWM.secondaryTargetMatrix)
+        pm.connectAttr(self.upper_guide.worldMatrix[0], self.upper_FK_guide_outWM.inputMatrix)
+        pm.connectAttr(self.lower_guide.worldMatrix[0], self.upper_FK_guide_outWM.primaryTargetMatrix)
+        pm.connectAttr(self.upper_guide.worldMatrix[0], self.upper_FK_guide_outWM.secondaryTargetMatrix)
         self.upper_FK_guide_outWM.secondaryMode.set(2)
         self.upper_FK_guide_outWM.secondaryTargetVector.set(0, 0, -1)
 
@@ -403,9 +413,9 @@ class LegModule:
 
 
         lower_FK_guide_outWM = aimMatrix(name=f"{self.name}_lower_FK_guide_outWM")
-        pm.connectAttr(lower_guide.worldMatrix[0], lower_FK_guide_outWM.inputMatrix)
-        pm.connectAttr(ankle_guide.worldMatrix[0], lower_FK_guide_outWM.primaryTargetMatrix)
-        pm.connectAttr(upper_guide.worldMatrix[0], lower_FK_guide_outWM.secondaryTargetMatrix)
+        pm.connectAttr(self.lower_guide.worldMatrix[0], lower_FK_guide_outWM.inputMatrix)
+        pm.connectAttr(self.ankle_guide.worldMatrix[0], lower_FK_guide_outWM.primaryTargetMatrix)
+        pm.connectAttr(self.upper_guide.worldMatrix[0], lower_FK_guide_outWM.secondaryTargetMatrix)
         lower_FK_guide_outWM.secondaryMode.set(2)
         lower_FK_guide_outWM.secondaryTargetVector.set(0, 0, -1)
 
@@ -430,25 +440,17 @@ class LegModule:
 
         #connection to FK Controller
         pm.connectAttr(lower_FK_ctrl_WM.matrixSum, lower_FK_ctrl.offsetParentMatrix)
-
-        """self.ankle_FK_guide_outWM = blendMatrix(name=f"{self.name}_ankle_FK_guide_outWM")
-        pm.connectAttr(lower_FK_guide_outWM.outputMatrix, self.ankle_FK_guide_outWM.inputMatrix)
-        pm.connectAttr(ankle_guide.worldMatrix[0], self.ankle_FK_guide_outWM.target[0].targetMatrix)
-        self.ankle_FK_guide_outWM.target[0].weight.set(1)
-        self.ankle_FK_guide_outWM.target[0].translateWeight.set(1)
-        for attr in ["scaleWeight", "rotateWeight", "shearWeight"]:
-            pm.setAttr(f"{self.ankle_FK_guide_outWM.target[0]}.{attr}", 0)"""
         
         self.ankle_FK_guide_outWM = aimMatrix(name=f"{self.name}_ankle_FK_guide_outWM")
-        pm.connectAttr(ankle_guide.worldMatrix[0], self.ankle_FK_guide_outWM.inputMatrix)
-        pm.connectAttr(foot_guide.worldMatrix[0], self.ankle_FK_guide_outWM.primaryTargetMatrix)
-        pm.connectAttr(upper_guide.worldMatrix[0], self.ankle_FK_guide_outWM.secondaryTargetMatrix)
+        pm.connectAttr(self.ankle_guide.worldMatrix[0], self.ankle_FK_guide_outWM.inputMatrix)
+        pm.connectAttr(self.foot_guide.worldMatrix[0], self.ankle_FK_guide_outWM.primaryTargetMatrix)
+        pm.connectAttr(self.upper_guide.worldMatrix[0], self.ankle_FK_guide_outWM.secondaryTargetMatrix)
         self.ankle_FK_guide_outWM.secondaryMode.set(2)
         self.ankle_FK_guide_outWM.secondaryTargetVector.set(0, 0, -1)
 
         self.foot_guide_outWM = blendMatrix(name=f"{self.name}_foot_guide_outWM")
         pm.connectAttr(self.ankle_FK_guide_outWM.outputMatrix, self.foot_guide_outWM.inputMatrix)
-        pm.connectAttr(foot_guide.worldMatrix[0], self.foot_guide_outWM.target[0].targetMatrix)
+        pm.connectAttr(self.foot_guide.worldMatrix[0], self.foot_guide_outWM.target[0].targetMatrix)
         self.foot_guide_outWM.target[0].weight.set(1)
         self.foot_guide_outWM.target[0].translateWeight.set(1)
         for attr in ["scaleWeight", "shearWeight"]:
@@ -484,8 +486,8 @@ class LegModule:
 
 
         foot_ball_guide_outWM = aimMatrix(name=f"{self.name}_foot_ball_guide_outWM")
-        pm.connectAttr(foot_ball_guide.worldMatrix[0], foot_ball_guide_outWM.inputMatrix)
-        pm.connectAttr(foot_end_guide.worldMatrix[0], foot_ball_guide_outWM.primaryTargetMatrix)
+        pm.connectAttr(self.foot_ball_guide.worldMatrix[0], foot_ball_guide_outWM.inputMatrix)
+        pm.connectAttr(self.foot_end_guide.worldMatrix[0], foot_ball_guide_outWM.primaryTargetMatrix)
 
         foot_ball_guide_outWIM = inverseMatrix(name=f"{self.name}_foot_ball_guide_outWIM")
         pm.connectAttr(foot_ball_guide_outWM.outputMatrix, foot_ball_guide_outWIM.inputMatrix)
@@ -502,7 +504,7 @@ class LegModule:
 
         foot_end_outWM = blendMatrix(name=f"{self.name}_foot_end_outWM")
         pm.connectAttr(foot_ball_guide_outWM.outputMatrix, foot_end_outWM.inputMatrix)
-        pm.connectAttr(foot_end_guide.worldMatrix[0], foot_end_outWM.target[0].targetMatrix)
+        pm.connectAttr(self.foot_end_guide.worldMatrix[0], foot_end_outWM.target[0].targetMatrix)
         for attr in ["scaleWeight", "rotateWeight", "shearWeight"]:
             pm.setAttr(f"{foot_end_outWM.target[0]}.{attr}", 0)
 
@@ -519,7 +521,7 @@ class LegModule:
 
         #IK foot, reverse-foot, and ankle
 
-        foot_IK_ctrl_POM = create_pom(module_name=self.name, name="foot_IK_ctrl_POM", source_matrix = foot_guide.worldMatrix[0], parentGuide_input = self.parent_moduleGuide_input.worldInverseMatrix[0])
+        foot_IK_ctrl_POM = create_pom(module_name=self.name, name="foot_IK_ctrl_POM", source_matrix = self.foot_guide.worldMatrix[0], parentGuide_input = self.parent_moduleGuide_input.worldInverseMatrix[0])
 
         foot_IK_ctrl_parent_moduleSpaceWM =  multMatrix(name=f"{self.name}_foot_IK_ctrl_{parent_module}SpaceWM")
         pm.connectAttr(foot_IK_ctrl_POM.matrixSum, foot_IK_ctrl_parent_moduleSpaceWM.matrixIn[0])
@@ -546,33 +548,33 @@ class LegModule:
         reverse_foot_hierarchies = {
             "left_bank_hierarchy":{
                 "name": "foot_left_bank",
-                "guide": foot_left_bank_guide.worldMatrix[0],
+                "guide": self.foot_left_bank_guide.worldMatrix[0],
                 "parent": foot_IK_ctrl.worldMatrix[0],
-                "parentGuide": foot_guide.worldInverseMatrix[0]
+                "parentGuide": self.foot_guide.worldInverseMatrix[0]
             },
             "right_bank": {
                 "name": "foot_right_bank",
-                "guide": foot_right_bank_guide.worldMatrix[0],
+                "guide": self.foot_left_bank_guide.worldMatrix[0],
                 "parent": foot_left_bank_offset.worldMatrix[0],
-                "parentGuide": foot_left_bank_guide.worldInverseMatrix[0]
+                "parentGuide": self.foot_left_bank_guide.worldInverseMatrix[0]
             },
             "heel_hierarchy": {
                 "name": "foot_heel",
-                "guide": foot_heel_guide.worldMatrix[0],
+                "guide": self.foot_heel_guide.worldMatrix[0],
                 "parent": foot_right_bank_offset.worldMatrix[0],
-                "parentGuide": foot_right_bank_guide.worldInverseMatrix[0]
+                "parentGuide": self.foot_left_bank_guide.worldInverseMatrix[0]
             },
             "end_hierarchy": {
                 "name": "foot_end",
-                "guide": foot_end_guide.worldMatrix[0],
+                "guide": self.foot_end_guide.worldMatrix[0],
                 "parent": foot_heel_offset.worldMatrix[0],
-                "parentGuide": foot_heel_guide.worldInverseMatrix[0]
+                "parentGuide": self.foot_heel_guide.worldInverseMatrix[0]
             },
             "ball_hierarchy": {
                 "name": "foot_ball",
-                "guide": foot_ball_guide.worldMatrix[0],
+                "guide": self.foot_ball_guide.worldMatrix[0],
                 "parent": foot_end_offset.worldMatrix[0],
-                "parentGuide": foot_end_guide.worldInverseMatrix[0]
+                "parentGuide": self.foot_end_guide.worldInverseMatrix[0]
             }
         }
         
@@ -584,7 +586,7 @@ class LegModule:
 
             foot_hierarchies[item["name"]] = local_hierarchy
 
-        ankle_IK_POM = create_pom(module_name=self.name, name="ankle_IK", source_matrix = self.ankle_FK_guide_outWM.outputMatrix, parentGuide_input = foot_ball_guide.worldInverseMatrix[0])
+        ankle_IK_POM = create_pom(module_name=self.name, name="ankle_IK", source_matrix = self.ankle_FK_guide_outWM.outputMatrix, parentGuide_input = self.foot_ball_guide.worldInverseMatrix[0])
 
         ankle_IK_baseWM = multMatrix(name=f"{self.name}_ankle_IK_WM")
         pm.connectAttr(ankle_IK_POM.matrixSum, ankle_IK_baseWM.matrixIn[0])
@@ -1318,12 +1320,12 @@ class LegModule:
         pm.connectAttr(ankle_WM.matrixSum, self.ankle_output.offsetParentMatrix)
 
         self.ankleGuide_output = transform(name=f"{self.name}_ankleGuide_output")
-        pm.connectAttr(ankle_guide.worldMatrix[0], self.ankleGuide_output.offsetParentMatrix)
+        pm.connectAttr(self.ankle_guide.worldMatrix[0], self.ankleGuide_output.offsetParentMatrix)
 
         #Organizing outliner
         outliner_data = {
             "inputs": [self.main_input, self.mainGuide_input, self.parent_module_input, self.parent_moduleGuide_input],
-            "guides": [upper_guide, lower_guide, ankle_guide, settings_guide, self.kneeLock_guide, foot_guide, foot_heel_guide, foot_end_guide, foot_ball_guide, foot_left_bank_guide, foot_right_bank_guide],
+            "guides": [self.upper_guide, self.lower_guide, self.ankle_guide, self.settings_guide, self.kneeLock_guide, self.foot_guide, self.foot_heel_guide, self.foot_end_guide, self.foot_ball_guide, self.foot_left_bank_guide, self.foot_right_bank_guide],
             "controls": [upper_FK_ctrl, lower_FK_ctrl, ankle_FK_ctrl, foot_IK_ctrl, knee_IK_ctrl, self.settings_ctrl, self.kneeLock_IK_ctrl, foot_ball_FK_ctrl],
             "helpers": [kneeLock_IK_helper, upper_proxy_helper, lower_proxy_helper, foot_ball_proxy_helper, foot_end_proxy_helper],
             "joints": [upper_jnt, lower_jnt, ankle_jnt, foot_ball_jnt, foot_end_jnt, ribbon_joints_grp],
@@ -1404,6 +1406,57 @@ class LegModule:
         pm.connectAttr(kneeLock_IK_ctrl_parentSpaceEnable.output, self.kneeLock_IK_ctrl_WM.target[kneeTarget_index].enableTarget)
         pm.connectAttr(parent_input.offsetParentMatrix, self.kneeLock_IK_ctrl_WM.target[kneeTarget_index].targetMatrix)
         pm.connectAttr(kneeLock_IK_ctrl_parentSpacePOM.matrixSum, self.kneeLock_IK_ctrl_WM.target[kneeTarget_index].offsetMatrix)
+
+    def mirror(self, axis:list = [1, 0, 0]):
+        """Mirror module based on list input marking the position to be mirrored"""
+        opposite_side = "R" if self.limb_side == "L" else "L"
+        opposite_fk_color = right_fk_color if self.limb_side == "L" else left_fk_color
+        opposite_ik_color = right_ik_color if self.limb_side == "L" else left_ik_color
+        
+        current_guide_positions = self.get_guide_positions()    
+    
+        LegModule(
+            parent_module=self.parent_module,
+            main_module=self.main_module,
+            limb_type=self.limb_type,
+            limb_side=opposite_side,
+            upper_guide_pos=mirror_position(position=current_guide_positions["upper_guide"], negate_axis=axis),
+            lower_guide_pos=mirror_position(position=current_guide_positions["lower_guide"], negate_axis=axis),
+            ankle_guide_pos=mirror_position(position=current_guide_positions["ankle_guide"], negate_axis=axis),
+            elbowLock_guide_pos=mirror_position(position=current_guide_positions["kneeLock_guide"], negate_axis=axis),
+            settings_guide_pos=mirror_position(position=current_guide_positions["settings_guide"], negate_axis=axis),
+            foot_guide_pos=mirror_position(position=current_guide_positions["foot_guide"], negate_axis=axis),
+            foot_left_bank_guide_pos=mirror_position(position=current_guide_positions["foot_left_bank_guide"], negate_axis=axis),
+            foot_right_bank_guide_pos=mirror_position(position=current_guide_positions["foot_right_bank_guide"], negate_axis=axis),
+            foot_heel_guide_pos=mirror_position(position=current_guide_positions["foot_heel_guide"], negate_axis=axis),
+            foot_ball_guide_pos=mirror_position(position=current_guide_positions["foot_ball_guide"], negate_axis=axis),
+            foot_end_guide_pos=mirror_position(position=current_guide_positions["foot_end_guide_pos"], negate_axis=axis),
+            fk_color=opposite_fk_color,
+            ik_color=opposite_ik_color,
+            bind_jnts=self.bind_jnts,
+            upper_guide_rot=self.upper_guide_rot
+        )
+    
+    def get_guide_positions(self) -> dict:
+        """Get current guide positions"""
+        return {
+            "upper_guide": pm.xform(f"{self.upper_guide}", q=True, ws=True, t=True),
+            "lower_guide": pm.xform(f"{self.lower_guide}",   q=True, ws=True, t=True),
+            "ankle_guide": pm.xform(f"{self.ankle_guide}",   q=True, ws=True, t=True),
+            "kneeLock_guide": pm.xform(f"{self.kneeLock_guide}",   q=True, ws=True, t=True),
+            "settings_guide": pm.xform(f"{self.settings_guide}",   q=True, ws=True, t=True),
+            "foot_guide": pm.xform(f"{self.foot_guide}",   q=True, ws=True, t=True),
+            "foot_left_bank_guide": pm.xform(f"{self.foot_left_bank_guide}",   q=True, ws=True, t=True),
+            "foot_right_bank_guide": pm.xform(f"{self.foot_right_bank_guide}",   q=True, ws=True, t=True),
+            "foot_heel_guide": pm.xform(f"{self.foot_heel_guide}",   q=True, ws=True, t=True),
+            "foot_end_guide_pos": pm.xform(f"{self.foot_end_guide}",   q=True, ws=True, t=True),
+            "foot_ball_guide": pm.xform(f"{self.foot_ball_guide}",   q=True, ws=True, t=True),
+        }
+
+    def del_module(self):
+        """Remove registry entry and delete self"""
+        registry.remove_module(self.name)
+        pm.delete(self.groups)
 
     @property
     def rig_module(self):

@@ -1,6 +1,7 @@
 import json
-from maya_scripts import control
 import pymel.core as pm
+from maya_scripts import control
+from maya_scripts import registry
 from maya_scripts.prox_node_setup.generated_nodes import *
 from maya_scripts.utilities import (
     create_guide, 
@@ -162,20 +163,28 @@ class LimbModule:
         self.limb_side = limb_side
         self.upper_guide_rot = upper_guide_rot
         self.bind_jnts = bind_jnts
-        
+        self.parent_module = parent_module
+        self.main_module = main_module
+
         self.groups = create_groups(rig_module_name=self.name)
         
-        upper_guide = create_guide(name=f"{self.name}_upper_guide", position=upper_guide_pos, color=guide_color)
-        upper_guide.rotate.set(self.upper_guide_rot)
-        lower_guide = create_guide(name=f"{self.name}_lower_guide", position=lower_guide_pos, color=guide_color)
-        hand_guide = create_guide(name=f"{self.name}_hand_guide", position=hand_guide_pos, color=guide_color)
+        registry.register(self.name, self)
+        root_node = self.groups["SETUP"].node
+        if not root_node.hasAttribute("moduleRegistryKey"):
+            root_node.addAttr(attr="moduleRegistryKey", dataType="string", hidden=False, keyable=True)
+        root_node.moduleRegistryKey.set(self.name)
+
+        self.upper_guide = create_guide(name=f"{self.name}_upper_guide", position=upper_guide_pos, color=guide_color)
+        self.upper_guide.rotate.set(self.upper_guide_rot)
+        self.lower_guide = create_guide(name=f"{self.name}_lower_guide", position=lower_guide_pos, color=guide_color)
+        self.hand_guide = create_guide(name=f"{self.name}_hand_guide", position=hand_guide_pos, color=guide_color)
 
         self.elbowLock_guide = create_guide(name=f"{self.name}_elbowLock_guide", position=elbowLock_guide_pos, color=guide_color)
 
-        settings_guide = create_guide(name=f"{self.name}_settings_guide", position=settings_guide_pos, color=guide_color)
+        self.settings_guide = create_guide(name=f"{self.name}_settings_guide", position=settings_guide_pos, color=guide_color)
 
-        lower_guide.translateZ.set(lock=True)
-        lower_guide.node.setLimit("translateMinY", 0)
+        self.lower_guide.translateZ.set(lock=True)
+        self.lower_guide.node.setLimit("translateMinY", 0)
 
         self.main_input = transform(name=f"{self.name}_{main_module}_input")
         self.mainGuide_input = transform(name=f"{self.name}_{main_module}Guide_input")
@@ -183,9 +192,6 @@ class LimbModule:
         self.parent_moduleGuide_input = transform(name=f"{self.name}_{parent_module}Guide_input")
 
         self.input_list = [parent_module, main_module, "worldSpace"]
-
-        a = aimMatrix()
-        
 
         self.settings_ctrl = control.create(ctrl_type="gear", degree=3, name=f"{self.name}_settings_ctrl", normal=(0, 0, 1), color=fk_color)
         self.settings_ctrl.node.addAttr(attr="custom", niceName="CUSTOM ATTR", attributeType="enum", enumName="----------", defaultValue=0, hidden=False, keyable=True)
@@ -222,7 +228,7 @@ class LimbModule:
         pm.connectAttr(parent_module_input_noScaleM.outputMatrix, parent_module_input_WM.matrixIn[0])
         pm.connectAttr(self.main_input.offsetParentMatrix, parent_module_input_WM.matrixIn[1])
         
-        settings_POM = create_pom(module_name=self.name, name="settings_POM", source_matrix = settings_guide.worldMatrix[0], parentGuide_input = self.parent_moduleGuide_input.worldInverseMatrix[0])
+        settings_POM = create_pom(module_name=self.name, name="settings_POM", source_matrix = self.settings_guide.worldMatrix[0], parentGuide_input = self.parent_moduleGuide_input.worldInverseMatrix[0])
 
         settings_WM = multMatrix(name=f"{self.name}_settings_WM")
         pm.connectAttr(settings_POM.matrixSum, settings_WM.matrixIn[0])
@@ -231,21 +237,21 @@ class LimbModule:
         pm.connectAttr(settings_WM.matrixSum, self.settings_ctrl.offsetParentMatrix)
 
         self.orientPlane_guide = aimMatrix(name=f"{self.name}_orientPlane_guide")
-        pm.connectAttr(upper_guide.worldMatrix[0], self.orientPlane_guide.inputMatrix)
-        pm.connectAttr(hand_guide.worldMatrix[0], self.orientPlane_guide.primaryTargetMatrix)
-        pm.connectAttr(upper_guide.worldMatrix[0],self.orientPlane_guide.secondaryTargetMatrix)
+        pm.connectAttr(self.upper_guide.worldMatrix[0], self.orientPlane_guide.inputMatrix)
+        pm.connectAttr(self.hand_guide.worldMatrix[0], self.orientPlane_guide.primaryTargetMatrix)
+        pm.connectAttr(self.upper_guide.worldMatrix[0],self.orientPlane_guide.secondaryTargetMatrix)
         self.orientPlane_guide.secondaryMode.set(2)
         self.orientPlane_guide.secondaryTargetVector.set(0, 0, -1)
 
         lower_ctrl_guide_WM = blendMatrix(name=f"{self.name}_lower_ctrl_guide_WM")
         pm.connectAttr(self.orientPlane_guide.outputMatrix, lower_ctrl_guide_WM.inputMatrix)
-        pm.connectAttr(hand_guide.worldMatrix[0], lower_ctrl_guide_WM.target[0].targetMatrix)
+        pm.connectAttr(self.hand_guide.worldMatrix[0], lower_ctrl_guide_WM.target[0].targetMatrix)
         lower_ctrl_guide_WM.target[0].useMatrix.set(True)
         lower_ctrl_guide_WM.target[0].weight.set(0.5)
         for attr in ["rotateWeight", "rotateWeight", "shearWeight"]:
             pm.setAttr(f"{lower_ctrl_guide_WM.target[0]}.{attr}", 0)
         
-        pm.connectAttr(lower_ctrl_guide_WM.outputMatrix, lower_guide.offsetParentMatrix)
+        pm.connectAttr(lower_ctrl_guide_WM.outputMatrix, self.lower_guide.offsetParentMatrix)
 
         #===============================================================================================================================================
         #===============================================================================================================================================
@@ -283,12 +289,12 @@ class LimbModule:
         self.elbowLock_list = [main_module, "worldSpace"]
 
         upper_initial_length = distanceBetween(name=f"{self.name}_upper_initial_length")
-        pm.connectAttr(upper_guide.worldMatrix[0], upper_initial_length.inMatrix1)
-        pm.connectAttr(lower_guide.worldMatrix[0], upper_initial_length.inMatrix2)
+        pm.connectAttr(self.upper_guide.worldMatrix[0], upper_initial_length.inMatrix1)
+        pm.connectAttr(self.lower_guide.worldMatrix[0], upper_initial_length.inMatrix2)
 
         lower_initial_Length = distanceBetween(name=f"{self.name}_lower_initial_Length")
-        pm.connectAttr(lower_guide.worldMatrix[0], lower_initial_Length.inMatrix1)
-        pm.connectAttr(hand_guide.worldMatrix[0], lower_initial_Length.inMatrix2)
+        pm.connectAttr(self.lower_guide.worldMatrix[0], lower_initial_Length.inMatrix1)
+        pm.connectAttr(self.hand_guide.worldMatrix[0], lower_initial_Length.inMatrix2)
 
         upper_length_manualScale = multiply(name=f"{self.name}_upper_length_manualScale")
         pm.connectAttr(upper_initial_length.distance, upper_length_manualScale.input_[0])
@@ -304,9 +310,9 @@ class LimbModule:
 
 
         self.upper_FK_guide_outWM = aimMatrix(name=f"{self.name}_upper_FK_guide_outWM")
-        pm.connectAttr(upper_guide.worldMatrix[0], self.upper_FK_guide_outWM.inputMatrix)
-        pm.connectAttr(lower_guide.worldMatrix[0], self.upper_FK_guide_outWM.primaryTargetMatrix)
-        pm.connectAttr(upper_guide.worldMatrix[0], self.upper_FK_guide_outWM.secondaryTargetMatrix)
+        pm.connectAttr(self.upper_guide.worldMatrix[0], self.upper_FK_guide_outWM.inputMatrix)
+        pm.connectAttr(self.lower_guide.worldMatrix[0], self.upper_FK_guide_outWM.primaryTargetMatrix)
+        pm.connectAttr(self.upper_guide.worldMatrix[0], self.upper_FK_guide_outWM.secondaryTargetMatrix)
         self.upper_FK_guide_outWM.secondaryMode.set(2)
         self.upper_FK_guide_outWM.secondaryTargetVector.set(0, 0, -1)
 
@@ -362,9 +368,9 @@ class LimbModule:
 
 
         lower_FK_guide_outWM = aimMatrix(name=f"{self.name}_lower_FK_guide_outWM")
-        pm.connectAttr(lower_guide.worldMatrix[0], lower_FK_guide_outWM.inputMatrix)
-        pm.connectAttr(hand_guide.worldMatrix[0], lower_FK_guide_outWM.primaryTargetMatrix)
-        pm.connectAttr(upper_guide.worldMatrix[0], lower_FK_guide_outWM.secondaryTargetMatrix)
+        pm.connectAttr(self.lower_guide.worldMatrix[0], lower_FK_guide_outWM.inputMatrix)
+        pm.connectAttr(self.hand_guide.worldMatrix[0], lower_FK_guide_outWM.primaryTargetMatrix)
+        pm.connectAttr(self.upper_guide.worldMatrix[0], lower_FK_guide_outWM.secondaryTargetMatrix)
         lower_FK_guide_outWM.secondaryMode.set(2)
         lower_FK_guide_outWM.secondaryTargetVector.set(0, 0, -1)
 
@@ -392,7 +398,7 @@ class LimbModule:
 
         self.hand_FK_guide_outWM = blendMatrix(name=f"{self.name}_hand_FK_guide_outWM")
         pm.connectAttr(lower_FK_guide_outWM.outputMatrix, self.hand_FK_guide_outWM.inputMatrix)
-        pm.connectAttr(hand_guide.worldMatrix[0], self.hand_FK_guide_outWM.target[0].targetMatrix)
+        pm.connectAttr(self.hand_guide.worldMatrix[0], self.hand_FK_guide_outWM.target[0].targetMatrix)
         self.hand_FK_guide_outWM.target[0].weight.set(1)
         self.hand_FK_guide_outWM.target[0].translateWeight.set(1)
         for attr in ["scaleWeight", "rotateWeight", "shearWeight"]:
@@ -1086,11 +1092,11 @@ class LimbModule:
         pm.connectAttr(hand_WM.matrixSum, self.hand_output.offsetParentMatrix)
 
         self.handGuide_output = transform(name=f"{self.name}_self.handGuide_output")
-        pm.connectAttr(hand_guide.worldMatrix[0], self.handGuide_output.offsetParentMatrix)
+        pm.connectAttr(self.hand_guide.worldMatrix[0], self.handGuide_output.offsetParentMatrix)
 
         outliner_data = {
             "inputs": [self.main_input, self.mainGuide_input, self.parent_module_input, self.parent_moduleGuide_input],
-            "guides": [upper_guide, lower_guide, hand_guide, settings_guide, self.elbowLock_guide],
+            "guides": [self.upper_guide, self.lower_guide, self.hand_guide, self.settings_guide, self.elbowLock_guide],
             "controls": [upper_FK_ctrl, lower_FK_ctrl, hand_FK_ctrl, hand_IK_ctrl, elbow_IK_ctrl, self.settings_ctrl, self.elbowLock_IK_ctrl],
             "helpers": [elbowLock_IK_helper, upper_proxy_helper, lower_proxy_helper],
             "joints": [upper_jnt, lower_jnt, hand_jnt, ribbon_joints_grp],
@@ -1172,6 +1178,45 @@ class LimbModule:
         pm.connectAttr(elbowLock_IK_ctrl_parentSpaceEnable.output, self.elbowLock_IK_ctrl_WM.target[elbowTarget_index].enableTarget)
         pm.connectAttr(parent_input.offsetParentMatrix, self.elbowLock_IK_ctrl_WM.target[elbowTarget_index].targetMatrix)
         pm.connectAttr(elbowLock_IK_ctrl_parentSpacePOM.matrixSum, self.elbowLock_IK_ctrl_WM.target[elbowTarget_index].offsetMatrix)
+
+    def mirror(self, axis:list = [1, 0, 0]):
+        """Mirror module based on list input marking the position to be mirrored"""
+        opposite_side = "R" if self.limb_side == "L" else "L"
+        opposite_fk_color = right_fk_color if self.limb_side == "L" else left_fk_color
+        opposite_ik_color = right_ik_color if self.limb_side == "L" else left_ik_color
+        
+        current_guide_positions = self.get_guide_positions()    
+    
+        LimbModule(
+            parent_module=self.parent_module,
+            main_module=self.main_module,
+            limb_type=self.limb_type,
+            limb_side=opposite_side,
+            upper_guide_pos=mirror_position(position=current_guide_positions["upper_guide"], negate_axis=axis),
+            lower_guide_pos=mirror_position(position=current_guide_positions["lower_guide"], negate_axis=axis),
+            hand_guide_pos=mirror_position(position=current_guide_positions["hand_guide"], negate_axis=axis),
+            elbowLock_guide_pos=mirror_position(position=current_guide_positions["elbowLock_guide"], negate_axis=axis),
+            settings_guide_pos=mirror_position(position=current_guide_positions["settings_guide"], negate_axis=axis),
+            fk_color=opposite_fk_color,
+            ik_color=opposite_ik_color,
+            bind_jnts=self.bind_jnts,
+            upper_guide_rot=self.upper_guide_rot
+        )
+    
+    def get_guide_positions(self) -> dict:
+        """Get current guide positions"""
+        return {
+            "upper_guide": pm.xform(f"{self.upper_guide}", q=True, ws=True, t=True),
+            "lower_guide": pm.xform(f"{self.lower_guide}",   q=True, ws=True, t=True),
+            "hand_guide": pm.xform(f"{self.hand_guide}",   q=True, ws=True, t=True),
+            "elbowLock_guide": pm.xform(f"{self.elbowLock_guide}",   q=True, ws=True, t=True),
+            "settings_guide": pm.xform(f"{self.settings_guide}",   q=True, ws=True, t=True)
+        }
+
+    def del_module(self):
+        """Remove registry entry and delete self"""
+        registry.remove_module(self.name)
+        pm.delete(self.groups)
 
     @property
     def rig_module(self):

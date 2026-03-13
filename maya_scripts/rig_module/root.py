@@ -1,5 +1,6 @@
 import pymel.core as pm
 from maya_scripts import control
+from maya_scripts import registry
 from maya_scripts.prox_node_setup.generated_nodes import *
 from maya_scripts.utilities import create_groups, create_guide, TextFieldHelper
 
@@ -41,6 +42,12 @@ class RootModule:
         self.name = name
         self.groups = create_groups(rig_module_name=self.name)
 
+        registry.register(self.name, self)
+        root_node = self.groups["SETUP"].node
+        if not root_node.hasAttribute("moduleRegistryKey"):
+            root_node.addAttr(attr="moduleRegistryKey", dataType="string", hidden=False, keyable=True)
+        root_node.moduleRegistryKey.set(self.name)
+
         root_guide = create_guide(name=f"{self.name}_guide", color=guide_color)
 
         root_god_ctrl = control.create_circle_ctrl(name=f"{self.name}_god_ctrl", ctrl_size=ctrl_size, normal=(0, 1, 0), color=god_color)
@@ -70,6 +77,10 @@ class RootModule:
                 except:
                     pm.parent(node, self.groups[group_name].node)
     
+    def del_module(self):
+        """Remove registry entry and delete self"""
+        registry.remove_module(self.name)
+        pm.delete(self.groups)
 
     @property
     def rig_module(self):
