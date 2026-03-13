@@ -16,6 +16,7 @@ from maya_scripts.utilities import (
     create_pom, 
     lock_ctrl_attrs, 
     create_ik_solver_setup,
+    mirror_position,
     TextFieldHelper,
     CompoundFieldSlot
 )

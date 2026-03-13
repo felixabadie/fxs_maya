@@ -103,10 +103,10 @@ class SpineModule:
 
         self.bind_jnts = bind_jnts
 
-        com_guide = create_guide(name=f"{self.name}_com_guide", position=com_guide_pos, color=guide_color)
-        hip_guide = create_guide(name=f"{self.name}_hip_guide", position=hip_guide_pos, color=guide_color)
-        mid_guide = create_guide(name=f"{self.name}_mid_guide", position=mid_guide_pos, color=guide_color)
-        chest_guide = create_guide(name=f"{self.name}_chest_guide", position=chest_guide_pos, color=guide_color)
+        self.com_guide = create_guide(name=f"{self.name}_com_guide", position=com_guide_pos, color=guide_color)
+        self.hip_guide = create_guide(name=f"{self.name}_hip_guide", position=hip_guide_pos, color=guide_color)
+        self.mid_guide = create_guide(name=f"{self.name}_mid_guide", position=mid_guide_pos, color=guide_color)
+        self.chest_guide = create_guide(name=f"{self.name}_chest_guide", position=chest_guide_pos, color=guide_color)
 
         settings_guide = create_guide(name=f"{self.name}_settings_guide", position=settings_guide_pos, color=guide_color)
 
@@ -149,68 +149,68 @@ class SpineModule:
         pm.setAttr(self.settings_ctrl.node.ribbon, lock=True)
         pm.setAttr(self.settings_ctrl.node.visibility_grps, lock=True)
 
-        mid_guide_WM = blendMatrix(name=f"{self.name}_mid_guide_WM")
-        pm.connectAttr(hip_guide.worldMatrix[0], mid_guide_WM.inputMatrix)
-        pm.connectAttr(chest_guide.worldMatrix[0], mid_guide_WM.target[0].targetMatrix)
-        mid_guide_WM.target[0].weight.set(0.5)
+        self.mid_guide_WM = blendMatrix(name=f"{self.name}_self.mid_guide_WM")
+        pm.connectAttr(self.hip_guide.worldMatrix[0], self.mid_guide_WM.inputMatrix)
+        pm.connectAttr(self.chest_guide.worldMatrix[0], self.mid_guide_WM.target[0].targetMatrix)
+        self.mid_guide_WM.target[0].weight.set(0.5)
         
-        mid_guide_outWM = aimMatrix(name=f"{self.name}_mid_guide_outWM")
-        pm.connectAttr(mid_guide.worldMatrix[0], mid_guide_outWM.inputMatrix)
-        mid_guide_outWM.primaryInputAxis.set(0, 1, 0)
-        pm.connectAttr(chest_guide.worldMatrix[0], mid_guide_outWM.primaryTargetMatrix)
+        self.mid_guide_outWM = aimMatrix(name=f"{self.name}_self.mid_guide_outWM")
+        pm.connectAttr(self.mid_guide.worldMatrix[0], self.mid_guide_outWM.inputMatrix)
+        self.mid_guide_outWM.primaryInputAxis.set(0, 1, 0)
+        pm.connectAttr(self.chest_guide.worldMatrix[0], self.mid_guide_outWM.primaryTargetMatrix)
 
-        pm.connectAttr(mid_guide_WM.outputMatrix, mid_guide.offsetParentMatrix)
+        pm.connectAttr(self.mid_guide_WM.outputMatrix, self.mid_guide.offsetParentMatrix)
 
         mid_IK_pom = multMatrix(name=f"{self.name}_mid_IK_pom")
-        pm.connectAttr(mid_guide_outWM.outputMatrix, mid_IK_pom.matrixIn[0])
+        pm.connectAttr(self.mid_guide_outWM.outputMatrix, mid_IK_pom.matrixIn[0])
         pm.connectAttr(self.parentGuide_input.worldInverseMatrix[0], mid_IK_pom.matrixIn[1])
 
         mid_IK_baseWM = multMatrix(name=f"{self.name}_mid_IK_baseWM")
         pm.connectAttr(mid_IK_pom.matrixSum, mid_IK_baseWM.matrixIn[0])
         pm.connectAttr(self.parent_input.worldMatrix[0], mid_IK_baseWM.matrixIn[1])
 
-        chest_guide_outWM = blendMatrix(name=f"{self.name}_chest_guide_outWM")
-        pm.connectAttr(mid_guide.worldMatrix[0], chest_guide_outWM.inputMatrix)
-        pm.connectAttr(chest_guide.worldMatrix[0], chest_guide_outWM.target[0].targetMatrix)
+        self.chest_guide_outWM = blendMatrix(name=f"{self.name}_self.chest_guide_outWM")
+        pm.connectAttr(self.mid_guide.worldMatrix[0], self.chest_guide_outWM.inputMatrix)
+        pm.connectAttr(self.chest_guide.worldMatrix[0], self.chest_guide_outWM.target[0].targetMatrix)
         for attr in ["scaleWeight", "rotateWeight", "shearWeight"]:
-            pm.setAttr(f"{chest_guide_outWM.target[0]}.{attr}", 0)
+            pm.setAttr(f"{self.chest_guide_outWM.target[0]}.{attr}", 0)
 
         hierarchies = {
             "com_hierarchy": {
                 "name": "com",
-                "guide": com_guide.worldMatrix[0],
+                "guide": self.com_guide.worldMatrix[0],
                 "parent": self.parent_input.offsetParentMatrix,
                 "parentGuide": self.parentGuide_input.worldInverseMatrix[0]
             },
             "hip_FK_hierarchy": {
                 "name": "hip_FK",
-                "guide": hip_guide.worldMatrix[0],
+                "guide": self.hip_guide.worldMatrix[0],
                 "parent": com_ctrl.worldMatrix[0],
-                "parentGuide": com_guide.worldInverseMatrix[0]
+                "parentGuide": self.com_guide.worldInverseMatrix[0]
             },
             "mid_FK_hierarchy": {
                 "name": "mid_FK",
-                "guide":mid_guide.worldMatrix[0],
+                "guide":self.mid_guide.worldMatrix[0],
                 "parent": com_ctrl.worldMatrix[0],
-                "parentGuide": com_guide.worldInverseMatrix[0]
+                "parentGuide": self.com_guide.worldInverseMatrix[0]
             },
             "chest_FK_hierarchy": {
                 "name": "chest_FK",
-                "guide": chest_guide_outWM.outputMatrix,
+                "guide": self.chest_guide_outWM.outputMatrix,
                 "parent": mid_FK_ctrl.worldMatrix[0],
-                "parentGuide": mid_guide.worldInverseMatrix[0]
+                "parentGuide": self.mid_guide.worldInverseMatrix[0]
             },
             "hip_IK_hierarchy": {
                 "name": "hip_IK",
-                "guide": hip_guide.worldMatrix[0],
+                "guide": self.hip_guide.worldMatrix[0],
                 "parent": com_ctrl.worldMatrix[0],
-                "parentGuide": com_guide.worldInverseMatrix[0]
+                "parentGuide": self.com_guide.worldInverseMatrix[0]
             },
             "chest_IK_hierarchy": {
                 "name": "chest_IK",
-                "guide": chest_guide_outWM.outputMatrix,
+                "guide": self.chest_guide_outWM.outputMatrix,
                 "parent": com_ctrl.worldMatrix[0],
-                "parentGuide": com_guide.worldInverseMatrix[0]
+                "parentGuide": self.com_guide.worldInverseMatrix[0]
             }
         }
 
@@ -223,7 +223,7 @@ class SpineModule:
             all_hierarchies[item["name"]] = main_hierarchy
 
         settings_ctrl_hierarchy = hierarchy_prep(module_name=self.name, name="settings", guide=settings_guide.worldMatrix[0], 
-                                                       parent=com_ctrl.worldMatrix[0], parentGuide=com_guide.worldInverseMatrix[0])
+                                                       parent=com_ctrl.worldMatrix[0], parentGuide=self.com_guide.worldInverseMatrix[0])
         
         pm.connectAttr(settings_ctrl_hierarchy["wm"].matrixSum, self.settings_ctrl.offsetParentMatrix)
 
@@ -234,7 +234,7 @@ class SpineModule:
         mid_IK_tempWM.target[1].weight.set(0.5)
 
         mid_IK_WM = multMatrix(name=f"{self.name}_mid_IK_WM")
-        pm.connectAttr(mid_guide.xformMatrix, mid_IK_WM.matrixIn[0])
+        pm.connectAttr(self.mid_guide.xformMatrix, mid_IK_WM.matrixIn[0])
         pm.connectAttr(mid_IK_tempWM.outputMatrix, mid_IK_WM.matrixIn[1])
 
         pm.connectAttr(mid_IK_WM.matrixSum, mid_IK_ctrl.offsetParentMatrix)
@@ -273,11 +273,11 @@ class SpineModule:
         self.hip_output = transform(f"{self.name}_hip_output")
         hip_localMatrix.outputMatrix >> self.hip_output.offsetParentMatrix
         self.hipGuide_output = transform(f"{self.name}_hipGuide_output")
-        hip_guide.worldMatrix[0] >> self.hipGuide_output.offsetParentMatrix
+        self.hip_guide.worldMatrix[0] >> self.hipGuide_output.offsetParentMatrix
         self.chest_output = transform(f"{self.name}_chest_output")
         chest_localMatrix.outputMatrix >> self.chest_output.offsetParentMatrix
         self.chestGuide_output = transform(f"{self.name}_chestGuide_output")
-        chest_guide.worldMatrix[0] >> self.chestGuide_output.offsetParentMatrix
+        self.chest_guide.worldMatrix[0] >> self.chestGuide_output.offsetParentMatrix
 
         pm.connectAttr(hip_localMatrix.outputMatrix, hip_tangent_offset.offsetParentMatrix)
         pm.connectAttr(chest_localMatrix.outputMatrix, chest_tangent_offset.offsetParentMatrix)
@@ -373,7 +373,7 @@ class SpineModule:
         order = {
             "inputs": [self.parent_input, self.parentGuide_input],
             "controls": [com_ctrl, hip_IK_ctrl, chest_IK_ctrl, mid_IK_ctrl, self.settings_ctrl, hip_FK_ctrl, mid_FK_ctrl, chest_FK_ctrl, hip_tangent_ctrl, chest_tangent_ctrl, mid_start_ctrl, mid_end_ctrl],
-            "guides": [com_guide, hip_guide, chest_guide, mid_guide, settings_guide],
+            "guides": [self.com_guide, self.hip_guide, self.chest_guide, self.mid_guide, settings_guide],
             "joints": [ribbon_joints_grp],
             "rigNodes": [ribbon_pin_grp, hip_tangent_offset, chest_tangent_offset, ribbon, upper_bezier_curve, middle_bezier_curve, down_bezier_curve],
             "outputs": [self.hip_output, self.hipGuide_output, self.chest_output, self.chestGuide_output, com_output, mid_output]
@@ -395,6 +395,15 @@ class SpineModule:
 
         for IK_c in [hip_IK_ctrl, mid_IK_ctrl, chest_IK_ctrl]:
             pm.connectAttr(self.settings_ctrl.node.use_IK, IK_c.visibility)
+
+    def get_guide_positions(self) -> dict:
+        """Get current guide positions"""
+        return {
+            "com": pm.xform(f"{self.com_guide}", q=True, ws=True, t=True),
+            "hip": pm.xform(f"{self.hip_guide}", q=True, ws=True, t=True),
+            "mid": pm.xform(f"{self.mid_guide}",   q=True, ws=True, t=True),
+            "chest": pm.xform(f"{self.chest_guide}",   q=True, ws=True, t=True)
+        }
 
     @property
     def rig_module(self):

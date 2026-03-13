@@ -1,13 +1,15 @@
 import json
-from maya_scripts import control
 import pymel.core as pm
+from maya_scripts import control
+from maya_scripts import registry
 from maya_scripts.prox_node_setup.generated_nodes import *
 from maya_scripts.utilities import (
     create_guide, 
     create_groups,
     create_fourByFourMatrix, 
     remove_main_scale, 
-    create_pom, 
+    create_pom,
+    mirror_position,
     TextFieldHelper,
     CompoundFieldSlot
 )
@@ -19,6 +21,8 @@ right_fk_color = [1, 0, 0]
 left_ik_color = [0, 0.85, 0.83]
 left_fk_color = [0, 0, 1]
 right_ik_color = [1, 0.6, 0]
+
+_module_registry = {}
 
 class ClavicleManager:
     def __init__(self):
@@ -115,8 +119,18 @@ class ClavicleModule:
         groups = create_groups(rig_module_name=self.name)
         self.groups = groups
 
-        start_guide = create_guide(name=f"{self.name}_start_guide", position=start_guide_pos, color=guide_color)
-        end_guide = create_guide(name=f"{self.name}_end_guide", position=end_guide_pos, color=guide_color)
+        self.start_guide = create_guide(name=f"{self.name}_start_guide", position=start_guide_pos, color=guide_color)
+        self.end_guide = create_guide(name=f"{self.name}_end_guide", position=end_guide_pos, color=guide_color)
+
+        self.start_guide_pos = start_guide_pos
+        self.end_guide_pos = end_guide_pos
+
+        registry.register(self.name, self)
+        root_node = self.groups["SETUP"].node
+        if not root_node.hasAttribute("moduleRegistryKey"):
+            root_node.addAttr(attr="moduleRegistryKey", dataType="string", hidden=False, keyable=True)
+        root_node.moduleRegistryKey.set(self.name)
+
 
         self.parent_input = transform(name=f"{self.name}_{parent_module}_input")
         self.parentGuide_input = transform(name=f"{self.name}_{parent_module}Guide_input")
@@ -125,12 +139,12 @@ class ClavicleModule:
         self.endGuide_output = transform(name=f"{self.name}_self.endGuide_output")
 
         start_guide_orientedM = aimMatrix(name=f"{self.name}_start_guide_orientedM")
-        pm.connectAttr(start_guide.worldMatrix[0], start_guide_orientedM.inputMatrix)
-        pm.connectAttr(end_guide.worldMatrix[0], start_guide_orientedM.primaryTargetMatrix)
+        pm.connectAttr(self.start_guide.worldMatrix[0], start_guide_orientedM.inputMatrix)
+        pm.connectAttr(self.end_guide.worldMatrix[0], start_guide_orientedM.primaryTargetMatrix)
         start_guide_orientedM.secondaryMode.set(2)
         start_guide_orientedM.secondaryTargetVector.set(0, 0, -1)
 
-        module_POM = create_pom(module_name=self.name, name="module_POM", source_matrix = end_guide.worldMatrix[0], parentGuide_input = self.parentGuide_input.worldInverseMatrix[0])
+        module_POM = create_pom(module_name=self.name, name="module_POM", source_matrix = self.end_guide.worldMatrix[0], parentGuide_input = self.parentGuide_input.worldInverseMatrix[0])
 
         start_POM = create_pom(module_name=self.name, name="start_POM", source_matrix = start_guide_orientedM.outputMatrix, parentGuide_input = self.parentGuide_input.worldInverseMatrix[0])
 
@@ -159,8 +173,8 @@ class ClavicleModule:
         pm.connectAttr(ctrl_noMainScale.matrixSum, currentLength.inMatrix2)
 
         originalLength = distanceBetween(name=f"{self.name}_originalLength")
-        pm.connectAttr(start_guide.worldMatrix[0], originalLength.inMatrix1)
-        pm.connectAttr(end_guide.worldMatrix[0], originalLength.inMatrix2)
+        pm.connectAttr(self.start_guide.worldMatrix[0], originalLength.inMatrix1)
+        pm.connectAttr(self.end_guide.worldMatrix[0], originalLength.inMatrix2)
 
         end_localTx = blendTwoAttr(name=f"{self.name}_end_localTx")
         pm.connectAttr(ctrl.node.lockLength, end_localTx.attributesBlender)
@@ -188,7 +202,7 @@ class ClavicleModule:
                 [0],
                 [0, 0],
                 [0, 0, 0],
-                [end_guide.translateX, end_guide.translateY, end_guide.translateZ]
+                [self.end_guide.translateX, self.end_guide.translateY, self.end_guide.translateZ]
             ]
         )
 
@@ -207,7 +221,7 @@ class ClavicleModule:
 
         outliner_data = {
             "inputs": [self.parent_input, self.parentGuide_input],
-            "guides": [start_guide, end_guide],
+            "guides": [self.start_guide, self.end_guide],
             "controls": [ctrl],
             "helpers": [],
             "joints": [start_jnt, end_jnt],
@@ -225,7 +239,26 @@ class ClavicleModule:
             except:
                 pass
 
+    def mirror(self, axis:list = [1, 0, 0]):
+        """Mirror module based on list input marking the position to be mirrored"""
+        opposite_side = "R" if self.limb_side == "L" else "L"
+        opposite_color = right_fk_color if self.limb_side == "L" else left_fk_color
+        ClavicleModule(
+            parent_module=...,
+            limb_type=self.limb_type,
+            limb_side=opposite_side,
+            start_guide_pos=mirror_position(position=self.start_guide_pos, negate_axis=axis),
+            end_guide_pos=mirror_position(position=self.end_guide_pos, negate_axis=axis),
+            clavicle_ctrl_color=opposite_color
+        )
     
+    def get_guide_positions(self) -> dict:
+        """Get current guide positions"""
+        return {
+            "start": pm.xform(f"{self.start_guide}", q=True, ws=True, t=True),
+            "end":   pm.xform(f"{self.end_guide}",   q=True, ws=True, t=True),
+        }
+
     @property
     def rig_module(self):
         return self.groups

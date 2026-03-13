@@ -600,12 +600,15 @@ def getPosFromObj(obj_name):
     return position
 
 
-with pm.window(title="Test") as win:
-    with pm.columnLayout(adj=True):
-        pm.floatFieldGrp(
-            numberOfFields=3,
-            label="Position",
-            extraLabel="X",   # nur EIN extraLabel möglich, leider
-        )
+def mirror_position(position:tuple, negate_axis:list=[1, 0, 0]) -> tuple:
+    """negate a position in tuple XYZ position"""
 
-win.show()
+    new_position = []
+
+    for i, p in enumerate(negate_axis):
+        if p == 1:
+            new_position.append(position[i] / -1)
+        else:
+            new_position.append(position[i])
+    
+    return tuple(new_position)
