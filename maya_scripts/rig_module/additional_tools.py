@@ -123,7 +123,7 @@ class GetRegistry:
             with pm.horizontalLayout():
                 pm.button(label="Get Current Rigging Module Registry", command=self.execute)
 
-    def execute(self):
+    def execute(self, *args):
         try:
             reg = registry.get_all()
             print("Current Directory: ", reg)
