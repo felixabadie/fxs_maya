@@ -58,7 +58,7 @@ class Mirror:
                     pm.button(label="Cancel")
                     pm.button(label="OK", command=self.execute)
     
-    def execute(self):
+    def execute(self, *args):
         module = get_module_from_group(self.module.obj)
 
         try:
@@ -83,7 +83,7 @@ class Delete:
                     pm.button(label="Cancel")
                     pm.button(label="OK", command=self.execute)
 
-    def execute(self):
+    def execute(self, *args):
         module = get_module_from_group(self.module.obj)
 
         try:
@@ -103,7 +103,7 @@ class ClearRegistry:
             with pm.horizontalLayout():
                 pm.button(label="Clear Rigging Module Registry", command=self.execute)
 
-    def execute(self):
+    def execute(self, *args):
         try:
             registry.remove_all()
         except Exception as e:
