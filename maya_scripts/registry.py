@@ -18,4 +18,5 @@ def remove_module(name):
         del _module_registry[name]
 
 def remove_all():
+    pm.warning("registry empty")
     return _module_registry.clear()

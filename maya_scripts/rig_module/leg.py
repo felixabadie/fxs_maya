@@ -1508,3 +1508,7 @@ class LegModule:
     @property
     def out_ankleGuide_output(self):
         return self.ankleGuide_output
+    
+    @property
+    def out_self_name(self):
+        return self.name

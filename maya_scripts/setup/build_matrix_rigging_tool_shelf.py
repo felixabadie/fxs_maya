@@ -44,6 +44,7 @@ def create_shelf():
         py_mirror_module_cmd = "from maya_scripts.rig_module import additional_tools; additional_tools.Mirror()"
         py_delete_module_cmd = "from maya_scripts.rig_module import additional_tools; additional_tools.Delete()"
         py_clear_registry_cmd = "from maya_scripts.rig_module import additional_tools; additional_tools.ClearRegistry()"
+        py_get_registry_cmd = "from maya_scripts.rig_module import additional_tools; additional_tools.GetRegistry()"
 
         root_icon = ICONS_PATH / "root.png"
         limb_icon = ICONS_PATH / "limb.png"
@@ -56,6 +57,7 @@ def create_shelf():
         mirror_icon = ICONS_PATH / "mirror.png"
         delete_module_icon = ICONS_PATH / "delete.png"
         clear_registry_icon = ICONS_PATH / "clear_registry.png"
+        get_registry_icon = ICONS_PATH / "get_registry.png"
 
 
         cmds.shelfButton(
@@ -143,6 +145,15 @@ def create_shelf():
             image=delete_module_icon,
             label="DeleteModule",
             annotation="Perform a clean delete of selected module including registry"
+        )
+
+        cmds.shelfButton(
+            parent=shelf_name,
+            command=py_get_registry_cmd,
+            sourceType="python",
+            image=get_registry_icon,
+            label="GetRegistry",
+            annotation="Get the current rigging module registry"
         )
 
         cmds.shelfButton(

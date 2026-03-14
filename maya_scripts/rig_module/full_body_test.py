@@ -3,12 +3,13 @@ import pymel.core as pm
 from maya_scripts.prox_node_setup.generated_nodes import *
 from utilities import TextFieldHelper
 
-from rig_module.root import RootModule
-from rig_module.base_limb import LimbModule
-from rig_module.spine import SpineModule
+from maya_scripts import registry
+
 from rig_module.leg import LegModule
+from rig_module.root import RootModule
+from rig_module.spine import SpineModule
+from rig_module.base_limb import LimbModule
 from rig_module.clavicle import ClavicleModule
-from rig_module import create_root_module
 
 guide_color = [1, 1, 1]
 pin_color = [1, 1, 0.26]
@@ -192,6 +193,17 @@ class BipedManager:
             fk_color=right_fk_color,
             ik_color=right_ik_color
         )
+
+        for module in [root, spine, l_arm_clavicle, l_arm, r_arm_clavicle, r_arm, l_leg_start, l_leg, r_leg_start, r_leg]:
+
+            module_groups = module.rig_module
+
+            registry.register(module_groups, module)
+            root_node = module_groups["SETUP"].node
+            if not root_node.hasAttribute("moduleRegistryKey"):
+                root_node.addAttr(attr="moduleRegistryKey", dataType="string", hidden=False, keyable=True)
+            root_node.moduleRegistryKey.set(module.out_self_name)
+
 
         for mod in [l_arm, r_arm, l_leg, r_leg]:
             pm.connectAttr(root.out_main_output.offsetParentMatrix, mod.out_main_input.offsetParentMatrix)

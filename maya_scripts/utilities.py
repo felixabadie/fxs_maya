@@ -616,7 +616,12 @@ def mirror_position(position:tuple, negate_axis:list=[1, 0, 0]) -> tuple:
 
 def get_module_from_group(group):
 
-    selection = group.node
-    if selection.hasAttr("moduleRegistryKey"):
-        key = selection.moduleRegistryKey.get()
-        return registry.get(key)
+    try:
+        if group.hasAttr("moduleRegistryKey"):
+            key = group.moduleRegistryKey.get()
+            return registry.get(key)
+        else:
+            pm.error("Module has no moduleRegistryKey attribute")
+    except Exception as e:
+        pm.error("get module from group error: ", e)
+

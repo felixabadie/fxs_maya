@@ -1264,3 +1264,7 @@ class LimbModule:
     @property
     def out_handGuide_output(self):
         return self.handGuide_output
+    
+    @property
+    def out_self_name(self):
+        return self.name

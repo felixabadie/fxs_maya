@@ -35,7 +35,7 @@ class AddParent:
             parent_input_module, parentGuide_input_module = child_module.addParent(parent_name=parent_name)
 
             pm.connectAttr(self.parent_output.obj.offsetParentMatrix, parent_input_module.offsetParentMatrix)
-            pm.connectAttr(self.parentGuide_output.offsetParentMatrix, parentGuide_input_module.offsetParentMatrix)
+            pm.connectAttr(self.parentGuide_output.obj.offsetParentMatrix, parentGuide_input_module.offsetParentMatrix)
 
         except Exception as e:
             pm.error("Add Parent Error: ", e)
@@ -96,6 +96,8 @@ class ClearRegistry:
     def __init__(self):
         self.win_id = "fxs_clear_registry_win"
 
+        pm.warning("Clearing Registry probably not reversable!")
+
         if pm.window(self.win_id, query=True, exists=True):
             pm.deleteUI(self.win_id)
 
@@ -108,6 +110,26 @@ class ClearRegistry:
             registry.remove_all()
         except Exception as e:
             pm.error("Clear Registry Error: ", e)
+
+
+class GetRegistry:
+    def __init__(self):
+        self.win_id = "fxs_get_registry_win"
+
+        if pm.window(self.win_id, query=True, exists=True):
+            pm.deleteUI(self.win_id)
+
+        with pm.window(self.win_id, title="Get Current Registry") as win:
+            with pm.horizontalLayout():
+                pm.button(label="Get Current Rigging Module Registry", command=self.execute)
+
+    def execute(self):
+        try:
+            reg = registry.get_all()
+            print("Current Directory: ", reg)
+        except Exception as e:
+            pm.error("GetRegestry Error: ", e)
+
 
 """def get_module_from_selection():
     selection = pm.selected()

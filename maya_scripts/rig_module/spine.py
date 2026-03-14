@@ -428,10 +428,12 @@ class SpineModule:
 
     @property
     def rig_module(self):
+        """get self.groups"""
         return self.groups
     
     @property
     def module_name(self):
+        """get input name for namespaces"""
         return self.name
     
     @property
@@ -457,3 +459,8 @@ class SpineModule:
     @property
     def out_hipGuide_output(self):
         return self.hipGuide_output
+    
+    @property
+    def out_self_name(self):
+        """get full module name"""
+        return self.name

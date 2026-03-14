@@ -296,3 +296,7 @@ class ClavicleModule:
     @property
     def out_endGuide_output(self):
         return self.endGuide_output
+    
+    @property
+    def out_self_name(self):
+        return self.name
