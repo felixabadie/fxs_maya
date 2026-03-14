@@ -91,7 +91,7 @@ class LimbManager:
             "lower_guide_pos": self.lower_guide_pos,
             "hand_guide_pos": self.hand_guide_pos,
             "elbowLock_guide_pos": self.elbowLock_guide_pos,
-            "upper_joint_rot": self.upper_guide_rot,
+            "upper_guide_rot": self.upper_guide_rot,
             "settings_guide_pos": self.settings_guide_pos
         }
 
@@ -100,7 +100,7 @@ class LimbManager:
             "lower_guide_pos": (0, 0, 0),
             "hand_guide_pos": (14, 25, 0),
             "elbowLock_guide_pos": (9, 25, -7),
-            "upper_joint_rot": (5, 25, -4),
+            "upper_guide_rot": (5, 25, -4),
             "settings_guide_pos": (0, 0, 0)
         }
 

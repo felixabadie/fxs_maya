@@ -18,11 +18,11 @@ class AddParent:
                 self.parent_output = TextFieldHelper("Parent output: ")
                 self.parentGuide_output = TextFieldHelper("ParentGuide output: ")
 
-            pm.text(label="Select the corresponding SETUP node")
+                pm.text(label="Select the corresponding SETUP node")
 
-            with pm.horizontalLayout():
-                    pm.button(label="Cancel")
-                    pm.button(label="OK", command=self.execute)
+                with pm.horizontalLayout():
+                        pm.button(label="Cancel")
+                        pm.button(label="OK", command=self.execute)
 
     def execute(self, *args):
         

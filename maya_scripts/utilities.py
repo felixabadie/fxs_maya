@@ -617,10 +617,6 @@ def mirror_position(position:tuple, negate_axis:list=[1, 0, 0]) -> tuple:
 def get_module_from_group(group):
 
     selection = group.node
-
-    for node in selection:
-        current = node
-        while current:
-            if current.hasAttr("moduleRegistryKey"):
-                key = current.moduleRegistryKey.get()
-                return registry.get(key)
+    if selection.hasAttr("moduleRegistryKey"):
+        key = selection.moduleRegistryKey.get()
+        return registry.get(key)
