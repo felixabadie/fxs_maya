@@ -67,6 +67,11 @@ class ClavicleManager:
             "end_guide_pos": self.end_guide_pos
         }
 
+        guide_origin_positions = {
+            "start_guide_pos": (2, 24, 1),
+            "end_guide_pos": (3, 26, 0)
+        }
+
         resolved_positions = {}
 
         for attr_name, slot in guide_positions.items():
@@ -74,8 +79,8 @@ class ClavicleManager:
             if all(v is not None and v != 0.0 for v in values):
                 resolved_positions[attr_name] = values
             else:
-                pm.warning(f"{attr_name} contains nonvalid values")
-                resolved_positions[attr_name] = None
+                pm.warning(f"{attr_name} contains nonvalid values, used default position")
+                resolved_positions[attr_name] = guide_origin_positions[attr_name]
 
         kwargs = {"parent_module": parent, "limb_type": name, "limb_side": limb_side, "clavicle_ctrl_color": clavicle_ctrl_color}
         for attr_name, value in resolved_positions.items():
@@ -274,7 +279,7 @@ class ClavicleModule:
     
     @property
     def module_name(self):
-        return str(self.groups)
+        return self.limb_type
     
     @property
     def out_parent_input(self):

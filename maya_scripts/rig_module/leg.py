@@ -67,6 +67,8 @@ class LegManager:
                 self.foot_ball_guide_pos = CompoundFieldSlot("Initial position of the ball guide: ")
                 self.foot_end_guide_pos = CompoundFieldSlot("Initial position of the foot_end guide: ")
                 self.kneeLock_guide_pos = CompoundFieldSlot("Initial position of the kneeLock guide: ")
+                self.upper_guide_rot = CompoundFieldSlot("Initial upper guide rotation (determines limb bend direction): ")
+                self.settings_guide_pos = CompoundFieldSlot("Initial position of settings guide: ")
                 
                 pm.text(label="Please fill out the following fields or select the corresponding components and press: OK")
                 
@@ -109,7 +111,24 @@ class LegManager:
             "foot_heel_guide_pos": self.foot_heel_guide_pos,
             "foot_ball_guide_pos": self.foot_ball_guide_pos,
             "foot_end_guide_pos": self.foot_end_guide_pos,
-            "kneeLock_guide_pos": self.kneeLock_guide_pos
+            "kneeLock_guide_pos": self.kneeLock_guide_pos,
+            "upper_guide_rot": self.upper_guide_rot,
+            "settings_guide_pos": self.settings_guide_pos
+        }
+
+        guide_origin_positions = {
+            "upper_guide_pos": (4, 10, 0),
+            "lower_guide_pos": (0, 1, 0),
+            "ankle_guide_pos": (0, 1, 0),
+            "foot_guide_pos": (4, 0, 0),
+            "foot_left_bank_guide_pos": (1, 0, 0),
+            "foot_right_bank_guide_pos": (-1, 0, 0),
+            "foot_heel_guide_pos": (0, 0, -1),
+            "foot_ball_guide_pos": (0, 0, 3),
+            "foot_end_guide_pos": (0, 0, 5),
+            "kneeLock_guide_pos": (4, 5, 8),
+            "upper_guide_rot": (180, 0, 0),
+            "settings_guide_pos": (5, 13, -2)
         }
 
         resolved_positions = {}
@@ -119,8 +138,8 @@ class LegManager:
             if all(v is not None and v != 0.0 for v in values):
                 resolved_positions[attr_name] = values
             else:
-                pm.warning(f"{attr_name} contains nonvalid values")
-                resolved_positions[attr_name] = None
+                pm.warning(f"{attr_name} contains nonvalid values, used default values")
+                resolved_positions[attr_name] = guide_origin_positions[attr_name]
 
         kwargs = {"parent_module": parent, "main_module":main, "limb_type": name, "limb_side": limb_side, "fk_color": fk_ctrl_color, "ik_color": ik_ctrl_color, "bind_jnts": bind_jnts}
         for attr_name, value in resolved_positions.items():
@@ -1464,7 +1483,7 @@ class LegModule:
     
     @property
     def module_name(self):
-        return str(self.groups)
+        return self.limb_type
 
     @property
     def out_parent_input(self):

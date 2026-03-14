@@ -40,6 +40,7 @@ class SpineManager:
                 self.parent_outputGuide = TextFieldHelper("Parent Output Guide: ")
                 self.com_guide_pos = CompoundFieldSlot("COM Position: ")
                 self.hip_guide_pos = CompoundFieldSlot("Hip Position: ")
+                self.mid_guide_pos = CompoundFieldSlot("Mid Position: ")
                 self.chest_guide_pos = CompoundFieldSlot("Chest Position: ")
                 pm.text(label="Please fill out the following fields or select the corresponding components and press: OK")
                 
@@ -65,7 +66,15 @@ class SpineManager:
         guide_positions = {
             "com_guide_pos": self.com_guide_pos,
             "hip_guide_pos": self.hip_guide_pos,
-            "chest_guide_pos": self.chest_guide_pos,
+            "mid_guide_pos": self.mid_guide_pos,
+            "chest_guide_pos": self.chest_guide_pos
+        }
+
+        guide_original_positions = {
+            "com_guide_pos": (0, 14, 0),
+            "hip_guide_pos": (0, 12, 0),
+            "mid_guide_pos": (0, 0, 0),
+            "chest_guide_pos": (0, 24, 0)
         }
 
         resolved_positions = {}
@@ -75,8 +84,8 @@ class SpineManager:
             if all(v is not None and v != 0.0 for v in values):
                 resolved_positions[attr_name] = values
             else:
-                pm.warning(f"{attr_name} contains nonvalid values")
-                resolved_positions[attr_name] = None
+                pm.warning(f"{attr_name} contains nonvalid values, used default position")
+                resolved_positions[attr_name] = guide_original_positions[attr_name]
 
         kwargs = {"parent_module": parent, "name": name, "bind_jnts": bind_jnts}
         for attr_name, value in resolved_positions.items():
@@ -423,7 +432,7 @@ class SpineModule:
     
     @property
     def module_name(self):
-        return str(self.groups)
+        return self.name
     
     @property
     def out_parent_input(self):

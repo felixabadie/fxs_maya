@@ -88,7 +88,7 @@ class RootModule:
 
     @property
     def module_name(self):
-        return str(self.groups)
+        return self.name
     
     @property
     def out_main_output(self):

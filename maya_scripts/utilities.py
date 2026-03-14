@@ -2,6 +2,7 @@ import json
 import logging
 import pymel.core as pm
 from pathlib import Path
+from maya_scripts import registry
 from maya_scripts.prox_node_setup.generated_nodes import *
 
 LOGGER = logging.getLogger("Rigging Utils")
@@ -612,3 +613,14 @@ def mirror_position(position:tuple, negate_axis:list=[1, 0, 0]) -> tuple:
             new_position.append(position[i])
     
     return tuple(new_position)
+
+def get_module_from_group(group):
+
+    selection = group.node
+
+    for node in selection:
+        current = node
+        while current:
+            if current.hasAttr("moduleRegistryKey"):
+                key = current.moduleRegistryKey.get()
+                return registry.get(key)

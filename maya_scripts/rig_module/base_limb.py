@@ -52,6 +52,8 @@ class LimbManager:
                 self.lower_guide_pos = CompoundFieldSlot("Initial position of the lower guide: ")
                 self.hand_guide_pos = CompoundFieldSlot("Initial position of the hand/feet guide: ")
                 self.elbowLock_guide_pos = CompoundFieldSlot("Initial position of the elbow/kneeLock guide: ")
+                self.upper_guide_rot = CompoundFieldSlot("Initial upper guide rotation (determines limb bend direction): ")
+                self.settings_guide_pos = CompoundFieldSlot("Initial position of settings guide: ")
                 pm.text(label="Please fill out the following fields or select the corresponding components and press: OK")
                 
                 with pm.horizontalLayout():
@@ -88,7 +90,18 @@ class LimbManager:
             "upper_guide_pos": self.upper_guide_pos,
             "lower_guide_pos": self.lower_guide_pos,
             "hand_guide_pos": self.hand_guide_pos,
-            "elbowLock_guide_pos": self.elbowLock_guide_pos
+            "elbowLock_guide_pos": self.elbowLock_guide_pos,
+            "upper_joint_rot": self.upper_guide_rot,
+            "settings_guide_pos": self.settings_guide_pos
+        }
+
+        guide_origin_positions = {
+            "upper_guide_pos": (4, 25, 0),
+            "lower_guide_pos": (0, 0, 0),
+            "hand_guide_pos": (14, 25, 0),
+            "elbowLock_guide_pos": (9, 25, -7),
+            "upper_joint_rot": (5, 25, -4),
+            "settings_guide_pos": (0, 0, 0)
         }
 
         resolved_positions = {}
@@ -98,8 +111,8 @@ class LimbManager:
             if all(v is not None and v != 0.0 for v in values):
                 resolved_positions[attr_name] = values
             else:
-                pm.warning(f"{attr_name} contains nonvalid values")
-                resolved_positions[attr_name] = None
+                pm.warning(f"{attr_name} contains nonvalid values, used default value")
+                resolved_positions[attr_name] = guide_origin_positions[attr_name]
 
         kwargs = {"parent_module": parent, "main_module":main, "limb_type": name, "limb_side": limb_side, "fk_color": fk_ctrl_color, "ik_color": ik_ctrl_color, "bind_jnts": bind_jnts}
         for attr_name, value in resolved_positions.items():
@@ -1179,6 +1192,8 @@ class LimbModule:
         pm.connectAttr(parent_input.offsetParentMatrix, self.elbowLock_IK_ctrl_WM.target[elbowTarget_index].targetMatrix)
         pm.connectAttr(elbowLock_IK_ctrl_parentSpacePOM.matrixSum, self.elbowLock_IK_ctrl_WM.target[elbowTarget_index].offsetMatrix)
 
+        return parent_input, parentGuide_input
+
     def mirror(self, axis:list = [1, 0, 0]):
         """Mirror module based on list input marking the position to be mirrored"""
         opposite_side = "R" if self.limb_side == "L" else "L"
@@ -1224,7 +1239,7 @@ class LimbModule:
     
     @property
     def module_name(self):
-        return str(self.groups)
+        return self.limb_type
     
     @property
     def out_parent_input(self):
