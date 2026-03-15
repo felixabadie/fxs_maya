@@ -194,15 +194,16 @@ class BipedManager:
             ik_color=right_ik_color
         )
 
-        for module in [root, spine, l_arm_clavicle, l_arm, r_arm_clavicle, r_arm, l_leg_start, l_leg, r_leg_start, r_leg]:
+        """for module in [root, spine, l_arm_clavicle, l_arm, r_arm_clavicle, r_arm, l_leg_start, l_leg, r_leg_start, r_leg]:
 
             module_groups = module.rig_module
+            module_name = module.out_self_name
 
-            registry.register(module_groups, module)
+            registry.register(module_name, module)
             root_node = module_groups["SETUP"].node
             if not root_node.hasAttribute("moduleRegistryKey"):
                 root_node.addAttr(attr="moduleRegistryKey", dataType="string", hidden=False, keyable=True)
-            root_node.moduleRegistryKey.set(module.out_self_name)
+            root_node.moduleRegistryKey.set(module.out_self_name)"""
 
 
         for mod in [l_arm, r_arm, l_leg, r_leg]:

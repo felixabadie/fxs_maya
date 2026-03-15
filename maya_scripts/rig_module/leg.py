@@ -69,7 +69,7 @@ class LegManager:
                 self.kneeLock_guide_pos = CompoundFieldSlot("Initial position of the kneeLock guide: ")
                 self.upper_guide_rot = CompoundFieldSlot("Initial upper guide rotation (determines limb bend direction): ")
                 self.settings_guide_pos = CompoundFieldSlot("Initial position of settings guide: ")
-                
+                self.mirror_axis = pm.checkBoxGrp(numberOfCheckBoxes=3, label="X", label2="Y", label3="Z")
                 pm.text(label="Please fill out the following fields or select the corresponding components and press: OK")
                 
                 with pm.horizontalLayout():
@@ -157,7 +157,27 @@ class LegManager:
         except:
             print("Parent Module connection not possible, manual connection requiered")
 
+        mirror_value1 = pm.checkBoxGrp(self.mirror_axis, query=True, value1=True)
+        mirror_value2 = pm.checkBoxGrp(self.mirror_axis, query=True, value2=True)
+        mirror_value3 = pm.checkBoxGrp(self.mirror_axis, query=True, value3=True)
 
+        if mirror_value1 == True or mirror_value2 == True or mirror_value3 == True:
+            try:
+                self.mirror_module = self.module.mirror(
+                    axis=[
+                        mirror_value1,
+                        mirror_value2,
+                        mirror_value3
+                    ]
+                )
+                pm.connectAttr(self.parent_output.obj.offsetParentMatrix, self.mirror_module.out_parent_input.offsetParentMatrix)
+                pm.connectAttr(self.parent_outputGuide.obj.offsetParentMatrix, self.mirror_module.out_parentGuide_input.offsetParentMatrix)
+
+                pm.connectAttr(self.main_output.obj.offsetParentMatrix, self.mirror_module.out_main_input.offsetParentMatrix)
+                pm.connectAttr(self.mainGuide_output.obj.offsetParentMatrix, self.mirror_module.out_mainGuide_input.offsetParentMatrix)
+
+            except:
+                pass
 
 class LegModule:
 
@@ -240,8 +260,19 @@ class LegModule:
             pm.connectAttr(self.foot_guide.worldMatrix[0], guide.offsetParentMatrix)
 
         self.kneeLock_guide = create_guide(name=f"{self.name}_kneeLock_guide", position=kneeLock_guide_pos, color=guide_color)
-
         self.settings_guide = create_guide(name=f"{self.name}_settings_guide", position=settings_guide_pos, color=guide_color)
+
+        self._upper_guide_mobj = self.upper_guide.node.__apimobject__()
+        self._lower_guide_mobj = self.lower_guide.node.__apimobject__()
+        self._ankle_guide_mobj = self.ankle_guide.node.__apimobject__()
+        self._foot_guide_mobj = self.foot_guide.node.__apimobject__()
+        self._foot_left_bank_guide_mobj = self.foot_left_bank_guide.node.__apimobject__()
+        self._foot_right_bank_guide_mobj = self.foot_right_bank_guide.node.__apimobject__()
+        self._foot_heel_guide_mobj = self.foot_heel_guide.node.__apimobject__()
+        self._foot_ball_guide_mobj = self.foot_ball_guide.node.__apimobject__()
+        self._foot_end_guide_mobj = self.foot_end_guide.node.__apimobject__()
+        self._kneeLock_guide_mobj = self.kneeLock_guide.node.__apimobject__()
+        self._settings_guide_mobj = self.settings_guide.node.__apimobject__()
 
         self.lower_guide.translateZ.set(lock=True)
         self.lower_guide.node.setLimit("translateMinY", 0)
@@ -1458,18 +1489,31 @@ class LegModule:
     
     def get_guide_positions(self) -> dict:
         """Get current guide positions"""
+        
+        upper_node = pm.PyNode(self._upper_guide_mobj)
+        lower_node = pm.PyNode(self._lower_guide_mobj)
+        ankle_node = pm.PyNode(self._ankle_guide_mobj)
+        foot_node = pm.PyNode(self._foot_guide_mobj)
+        foot_left_bank_node = pm.PyNode(self._foot_left_bank_guide_mobj)
+        foot_right_bank_node = pm.PyNode(self._foot_right_bank_guide_mobj)
+        foot_heel_node = pm.PyNode(self._foot_heel_guide_mobj)
+        foot_ball_node = pm.PyNode(self._foot_ball_guide_mobj)
+        foot_end_node = pm.PyNode(self._foot_end_guide_mobj)
+        elbowLock_node = pm.PyNode(self._kneeLock_guide_mobj)
+        settings_node = pm.PyNode(self._settings_guide_mobj)
+        
         return {
-            "upper_guide": pm.xform(f"{self.upper_guide}", q=True, ws=True, t=True),
-            "lower_guide": pm.xform(f"{self.lower_guide}",   q=True, ws=True, t=True),
-            "ankle_guide": pm.xform(f"{self.ankle_guide}",   q=True, ws=True, t=True),
-            "kneeLock_guide": pm.xform(f"{self.kneeLock_guide}",   q=True, ws=True, t=True),
-            "settings_guide": pm.xform(f"{self.settings_guide}",   q=True, ws=True, t=True),
-            "foot_guide": pm.xform(f"{self.foot_guide}",   q=True, ws=True, t=True),
-            "foot_left_bank_guide": pm.xform(f"{self.foot_left_bank_guide}",   q=True, ws=True, t=True),
-            "foot_right_bank_guide": pm.xform(f"{self.foot_right_bank_guide}",   q=True, ws=True, t=True),
-            "foot_heel_guide": pm.xform(f"{self.foot_heel_guide}",   q=True, ws=True, t=True),
-            "foot_end_guide_pos": pm.xform(f"{self.foot_end_guide}",   q=True, ws=True, t=True),
-            "foot_ball_guide": pm.xform(f"{self.foot_ball_guide}",   q=True, ws=True, t=True),
+            "upper_guide": pm.xform(upper_node, q=True, ws=True, t=True),
+            "lower_guide": pm.xform(lower_node,   q=True, ws=True, t=True),
+            "ankle_guide": pm.xform(ankle_node,   q=True, ws=True, t=True),
+            "kneeLock_guide": pm.xform(elbowLock_node,   q=True, ws=True, t=True),
+            "settings_guide": pm.xform(settings_node,   q=True, ws=True, t=True),
+            "foot_guide": pm.xform(foot_node,   q=True, ws=True, t=True),
+            "foot_left_bank_guide": pm.xform(foot_left_bank_node,   q=True, ws=True, t=True),
+            "foot_right_bank_guide": pm.xform(foot_right_bank_node,   q=True, ws=True, t=True),
+            "foot_heel_guide": pm.xform(foot_heel_node,   q=True, ws=True, t=True),
+            "foot_end_guide_pos": pm.xform(foot_end_node,   q=True, ws=True, t=True),
+            "foot_ball_guide": pm.xform(foot_ball_node,   q=True, ws=True, t=True),
         }
 
     def del_module(self):

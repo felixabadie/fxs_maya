@@ -31,7 +31,7 @@ class AddParent:
 
         try:
 
-            parent_name = child_module.module_name
+            parent_name = parent_module.module_name
             parent_input_module, parentGuide_input_module = child_module.addParent(parent_name=parent_name)
 
             pm.connectAttr(self.parent_output.obj.offsetParentMatrix, parent_input_module.offsetParentMatrix)
@@ -51,6 +51,8 @@ class Mirror:
         with pm.window(self.win_id, title="Mirror Selected Module") as win:
             with pm.columnLayout(adj=True):
                 self.module = TextFieldHelper("Module: ")
+                #self.mirror_parent = TextFieldHelper("Mirror Parent: ")
+                #self.mirrot_parentGuide = TextFieldHelper("Mirror Parent Guide: ")
                 self.mirror_axis = CompoundFieldSlot("Axis (1 for mirroring, 0 for not): ")
                 pm.text("Select the corresponding SETUP node and fill out the Axis")
 
@@ -62,9 +64,31 @@ class Mirror:
         module = get_module_from_group(self.module.obj)
 
         try:
-            module.mirror(axis=list(self.mirror_axis))
+            # Zuerst upstream Nodes holen und validieren
+            parent_inputs = module.out_parent_input.node.attr("offsetParentMatrix").inputs()
+            parentGuide_inputs = module.out_parentGuide_input.node.attr("offsetParentMatrix").inputs()
+
+            if not parent_inputs:
+                pm.error(f"No upstream connection found on parent_input")
+            if not parentGuide_inputs:
+                pm.error(f"No upstream connection found on parentGuide_input")
+
+            mirror_parent      = parent_inputs[0]
+            mirror_parentGuide = parentGuide_inputs[0]
+
+            # Mirror Modul erstellen
+            mirror_module = module.mirror(axis=list(self.mirror_axis.get_values()))
+
+            if mirror_module is None:
+                pm.error("mirror() returned None")
+
+            # Parent verbinden
+            pm.connectAttr(mirror_parent.offsetParentMatrix, mirror_module.out_parent_input.offsetParentMatrix)
+            pm.connectAttr(mirror_parentGuide.offsetParentMatrix, mirror_module.out_parentGuide_input.offsetParentMatrix)
+
         except Exception as e:
-            pm.error("Mirror Error: ", e)
+            pm.error(f"Mirror Error: {e}")
+
 
 
 class Delete:
@@ -131,7 +155,11 @@ class GetRegistry:
             pm.error("GetRegestry Error: ", e)
 
 
-"""def get_module_from_selection():
+
+"""import pymel.core as pm
+from maya_scripts import registry
+
+def get_module_from_selection():
     selection = pm.selected()
     for node in selection:
         current = node
@@ -146,4 +174,8 @@ module = get_module_from_selection()
 try:
     module.mirror()
 except Exception as e:
-    print(e)"""
+    print(e)
+"""
+#maya_scripts.rig_module.clavicle.ClavicleModule object at 0x000001C2A14E0510
+
+#Object <maya_scripts.prox_node_setup.generated_nodes.transform object at 0x000001C1BF14D190> is invalid

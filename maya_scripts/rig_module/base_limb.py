@@ -1,5 +1,6 @@
 import json
 import pymel.core as pm
+import maya.api.OpenMaya as om2
 from maya_scripts import control
 from maya_scripts import registry
 from maya_scripts.prox_node_setup.generated_nodes import *
@@ -54,6 +55,7 @@ class LimbManager:
                 self.elbowLock_guide_pos = CompoundFieldSlot("Initial position of the elbow/kneeLock guide: ")
                 self.upper_guide_rot = CompoundFieldSlot("Initial upper guide rotation (determines limb bend direction): ")
                 self.settings_guide_pos = CompoundFieldSlot("Initial position of settings guide: ")
+                self.mirror_axis = pm.checkBoxGrp(numberOfCheckBoxes=3, label="X", label2="Y", label3="Z")
                 pm.text(label="Please fill out the following fields or select the corresponding components and press: OK")
                 
                 with pm.horizontalLayout():
@@ -130,6 +132,28 @@ class LimbManager:
         except:
             print("Parent Module connection not possible, manual connection requiered")
 
+        mirror_value1 = pm.checkBoxGrp(self.mirror_axis, query=True, value1=True)
+        mirror_value2 = pm.checkBoxGrp(self.mirror_axis, query=True, value2=True)
+        mirror_value3 = pm.checkBoxGrp(self.mirror_axis, query=True, value3=True)
+
+        if mirror_value1 == True or mirror_value2 == True or mirror_value3 == True:
+            try:
+                self.mirror_module = self.module.mirror(
+                    axis=[
+                        mirror_value1,
+                        mirror_value2,
+                        mirror_value3
+                    ]
+                )
+                pm.connectAttr(self.parent_output.obj.offsetParentMatrix, self.mirror_module.out_parent_input.offsetParentMatrix)
+                pm.connectAttr(self.parent_outputGuide.obj.offsetParentMatrix, self.mirror_module.out_parentGuide_input.offsetParentMatrix)
+
+                pm.connectAttr(self.main_output.obj.offsetParentMatrix, self.mirror_module.out_main_input.offsetParentMatrix)
+                pm.connectAttr(self.mainGuide_output.obj.offsetParentMatrix, self.mirror_module.out_mainGuide_input.offsetParentMatrix)
+
+            except:
+                pass
+
 
 class LimbModule:
 
@@ -193,8 +217,13 @@ class LimbModule:
         self.hand_guide = create_guide(name=f"{self.name}_hand_guide", position=hand_guide_pos, color=guide_color)
 
         self.elbowLock_guide = create_guide(name=f"{self.name}_elbowLock_guide", position=elbowLock_guide_pos, color=guide_color)
-
         self.settings_guide = create_guide(name=f"{self.name}_settings_guide", position=settings_guide_pos, color=guide_color)
+
+        self._upper_guide_mobj = self.upper_guide.node.__apimobject__()
+        self._lower_guide_mobj = self.lower_guide.node.__apimobject__()
+        self._hand_guide_mobj = self.hand_guide.node.__apimobject__()
+        self._elbowLock_guide_mobj = self.elbowLock_guide.node.__apimobject__()
+        self._settings_guide_mobj = self.settings_guide.node.__apimobject__()
 
         self.lower_guide.translateZ.set(lock=True)
         self.lower_guide.node.setLimit("translateMinY", 0)
@@ -1201,8 +1230,9 @@ class LimbModule:
         opposite_ik_color = right_ik_color if self.limb_side == "L" else left_ik_color
         
         current_guide_positions = self.get_guide_positions()    
-    
-        LimbModule(
+        print(f"[Mirror] Guide positions: {current_guide_positions}")
+
+        module = LimbModule(
             parent_module=self.parent_module,
             main_module=self.main_module,
             limb_type=self.limb_type,
@@ -1217,15 +1247,23 @@ class LimbModule:
             bind_jnts=self.bind_jnts,
             upper_guide_rot=self.upper_guide_rot
         )
+        return module
     
     def get_guide_positions(self) -> dict:
         """Get current guide positions"""
+        
+        upper_node = pm.PyNode(self._upper_guide_mobj)
+        lower_node = pm.PyNode(self._lower_guide_mobj)
+        hand_node = pm.PyNode(self._hand_guide_mobj)
+        elbowLock_node = pm.PyNode(self._elbowLock_guide_mobj)
+        settings_node = pm.PyNode(self._settings_guide_mobj)
+
         return {
-            "upper_guide": pm.xform(f"{self.upper_guide}", q=True, ws=True, t=True),
-            "lower_guide": pm.xform(f"{self.lower_guide}",   q=True, ws=True, t=True),
-            "hand_guide": pm.xform(f"{self.hand_guide}",   q=True, ws=True, t=True),
-            "elbowLock_guide": pm.xform(f"{self.elbowLock_guide}",   q=True, ws=True, t=True),
-            "settings_guide": pm.xform(f"{self.settings_guide}",   q=True, ws=True, t=True)
+            "upper_guide": pm.xform(upper_node, q=True, ws=True, t=True),
+            "lower_guide": pm.xform(lower_node, q=True, ws=True, t=True),
+            "hand_guide": pm.xform(hand_node, q=True, ws=True, t=True),
+            "elbowLock_guide": pm.xform(elbowLock_node, q=True, ws=True, t=True),
+            "settings_guide": pm.xform(settings_node, q=True, ws=True, t=True)
         }
 
     def del_module(self):

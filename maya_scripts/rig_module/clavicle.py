@@ -1,5 +1,6 @@
 import json
 import pymel.core as pm
+import maya.api.OpenMaya as om2
 from maya_scripts import control
 from maya_scripts import registry
 from maya_scripts.prox_node_setup.generated_nodes import *
@@ -40,6 +41,7 @@ class ClavicleManager:
                 self.parent_outputGuide = TextFieldHelper("Parent Output Guide: ")
                 self.start_guide_pos = CompoundFieldSlot("Start position: ")
                 self.end_guide_pos = CompoundFieldSlot("End position: ")
+                self.mirror_axis = pm.checkBoxGrp(numberOfCheckBoxes=3, label="X", label2="Y", label3="Z")
                 pm.text(label="Please fill out the following fields or select the corresponding components and press: OK")
                 
                 with pm.horizontalLayout():
@@ -95,6 +97,24 @@ class ClavicleManager:
         except:
             pm.error("Parent Module connection not possible, manual connection requiered")
 
+        mirror_value1 = pm.checkBoxGrp(self.mirror_axis, query=True, value1=True)
+        mirror_value2 = pm.checkBoxGrp(self.mirror_axis, query=True, value2=True)
+        mirror_value3 = pm.checkBoxGrp(self.mirror_axis, query=True, value3=True)
+
+        if mirror_value1 == True or mirror_value2 == True or mirror_value3 == True:
+            try:
+                self.mirror_module = self.module.mirror(
+                    axis=[
+                        mirror_value1,
+                        mirror_value2,
+                        mirror_value3
+                    ]
+                )
+                pm.connectAttr(self.parent_output.obj.offsetParentMatrix, self.mirror_module.out_parent_input.offsetParentMatrix)
+                pm.connectAttr(self.parent_outputGuide.obj.offsetParentMatrix, self.mirror_module.out_parentGuide_input.offsetParentMatrix)
+
+            except:
+                pass
 
 class ClavicleModule:
     def __init__(self, parent_module:str, limb_type:str, limb_side:str, start_guide_pos:tuple = (2, 24, 1), end_guide_pos:tuple = (3, 26, 0), clavicle_ctrl_color:list = [0, 0, 0]):
@@ -128,8 +148,8 @@ class ClavicleModule:
         self.start_guide = create_guide(name=f"{self.name}_start_guide", position=start_guide_pos, color=guide_color)
         self.end_guide = create_guide(name=f"{self.name}_end_guide", position=end_guide_pos, color=guide_color)
 
-        self.start_guide_pos = start_guide_pos
-        self.end_guide_pos = end_guide_pos
+        self._start_guide_mobj = self.start_guide.node.__apimobject__()
+        self._end_guide_mobj   = self.end_guide.node.__apimobject__()
 
         registry.register(self.name, self)
         root_node = self.groups["SETUP"].node
@@ -251,8 +271,9 @@ class ClavicleModule:
         opposite_color = right_fk_color if self.limb_side == "L" else left_fk_color
         
         current_guide_positions = self.get_guide_positions()
-        
-        ClavicleModule(
+        print(f"[Mirror] Guide positions: {current_guide_positions}")
+
+        module = ClavicleModule(
             parent_module=self.parent_module,
             limb_type=self.limb_type,
             limb_side=opposite_side,
@@ -260,12 +281,16 @@ class ClavicleModule:
             end_guide_pos=mirror_position(position=current_guide_positions["end"], negate_axis=axis),
             clavicle_ctrl_color=opposite_color
         )
-    
+        return module
+
+
     def get_guide_positions(self) -> dict:
-        """Get current guide positions"""
+        start_node = pm.PyNode(self._start_guide_mobj)
+        end_node   = pm.PyNode(self._end_guide_mobj)
+        
         return {
-            "start": pm.xform(f"{self.start_guide}", q=True, ws=True, t=True),
-            "end":   pm.xform(f"{self.end_guide}",   q=True, ws=True, t=True),
+            "start": pm.xform(start_node, q=True, ws=True, t=True),
+            "end":   pm.xform(end_node,   q=True, ws=True, t=True),
         }
 
     def del_module(self):
