@@ -51,9 +51,10 @@ class Mirror:
         with pm.window(self.win_id, title="Mirror Selected Module") as win:
             with pm.columnLayout(adj=True):
                 self.module = TextFieldHelper("Module: ")
-                #self.mirror_parent = TextFieldHelper("Mirror Parent: ")
-                #self.mirrot_parentGuide = TextFieldHelper("Mirror Parent Guide: ")
-                self.mirror_axis = CompoundFieldSlot("Axis (1 for mirroring, 0 for not): ")
+                self.mirror_parent = TextFieldHelper("Mirror Parent: ")
+                self.mirror_parentGuide = TextFieldHelper("Mirror Parent Guide: ")
+                pm.text(label="Check the Axis to mirror: ")
+                self.mirror_axis = pm.checkBoxGrp(numberOfCheckBoxes=3, label="X", label2="Y", label3="Z")
                 pm.text("Select the corresponding SETUP node and fill out the Axis")
 
                 with pm.horizontalLayout():
@@ -65,7 +66,7 @@ class Mirror:
 
         try:
             # Zuerst upstream Nodes holen und validieren
-            parent_inputs = module.out_parent_input.node.attr("offsetParentMatrix").inputs()
+            """parent_inputs = module.out_parent_input.node.attr("offsetParentMatrix").inputs()
             parentGuide_inputs = module.out_parentGuide_input.node.attr("offsetParentMatrix").inputs()
 
             if not parent_inputs:
@@ -74,17 +75,27 @@ class Mirror:
                 pm.error(f"No upstream connection found on parentGuide_input")
 
             mirror_parent      = parent_inputs[0]
-            mirror_parentGuide = parentGuide_inputs[0]
+            mirror_parentGuide = parentGuide_inputs[0]"""
+
+            mirror_value1 = pm.checkBoxGrp(self.mirror_axis, query=True, value1=True)
+            mirror_value2 = pm.checkBoxGrp(self.mirror_axis, query=True, value2=True)
+            mirror_value3 = pm.checkBoxGrp(self.mirror_axis, query=True, value3=True)
 
             # Mirror Modul erstellen
-            mirror_module = module.mirror(axis=list(self.mirror_axis.get_values()))
+            mirror_module = module.mirror(
+                    axis=[
+                        mirror_value1,
+                        mirror_value2,
+                        mirror_value3
+                    ]
+                )
 
-            if mirror_module is None:
-                pm.error("mirror() returned None")
+            """if mirror_module is None:
+                pm.error("mirror() returned None")"""
 
             # Parent verbinden
-            pm.connectAttr(mirror_parent.offsetParentMatrix, mirror_module.out_parent_input.offsetParentMatrix)
-            pm.connectAttr(mirror_parentGuide.offsetParentMatrix, mirror_module.out_parentGuide_input.offsetParentMatrix)
+            pm.connectAttr(self.mirror_parent.obj.offsetParentMatrix, mirror_module.out_parent_input.offsetParentMatrix)
+            pm.connectAttr(self.mirror_parentGuide.obj.offsetParentMatrix, mirror_module.out_parentGuide_input.offsetParentMatrix)
 
         except Exception as e:
             pm.error(f"Mirror Error: {e}")
@@ -113,7 +124,7 @@ class Delete:
         try:
             module.del_module()
         except Exception as e:
-            pm.error("Delete Module Error: ", e)
+            print("Delete Module Error: ", e)
 
 
 class ClearRegistry:

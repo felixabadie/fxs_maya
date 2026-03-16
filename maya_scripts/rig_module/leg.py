@@ -71,6 +71,7 @@ class LegManager:
                 self.kneeLock_guide_pos = CompoundFieldSlot("Initial position of the kneeLock guide: ")
                 self.upper_guide_rot = CompoundFieldSlot("Initial upper guide rotation (determines limb bend direction): ")
                 self.settings_guide_pos = CompoundFieldSlot("Initial position of settings guide: ")
+                pm.text(label="Check the Axis to mirror: ")
                 self.mirror_axis = pm.checkBoxGrp(numberOfCheckBoxes=3, label="X", label2="Y", label3="Z")
                 pm.text(label="Please fill out the following fields or select the corresponding components and press: OK")
                 
@@ -138,11 +139,15 @@ class LegManager:
 
         for attr_name, slot in guide_positions.items():
             values = slot.get_values()
-            if all(v is not None and v != 0.0 for v in values):
-                resolved_positions[attr_name] = values
-            else:
-                pm.warning(f"{attr_name} contains nonvalid values, used default values")
-                resolved_positions[attr_name] = guide_origin_positions[attr_name]
+            combined_value_list = []
+
+            for i, v in enumerate(values):
+                if v is not None and v != 0.0:
+                    combined_value_list.append(v)
+                else:
+                    combined_value_list.append(guide_origin_positions[attr_name][i])
+
+            resolved_positions[attr_name] = tuple(combined_value_list)
 
         kwargs = {"parent_module": parent, "main_module":main, "limb_type": name, "limb_side": limb_side, "fk_color": fk_ctrl_color, "ik_color": ik_ctrl_color, "bind_jnts": bind_jnts}
         for attr_name, value in resolved_positions.items():
@@ -1522,7 +1527,7 @@ class LegModule:
     def del_module(self):
         """Remove registry entry and delete self"""
         registry.remove_module(self.name)
-        pm.delete(self.groups)
+        pm.delete(f"{self.name}_mod")
 
     @property
     def rig_module(self):

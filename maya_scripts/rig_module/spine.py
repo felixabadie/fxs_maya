@@ -428,7 +428,7 @@ class SpineModule:
     def del_module(self):
         """Remove registry entry and delete self"""
         registry.remove_module(self.name)
-        pm.delete(self.groups)
+        pm.delete(f"{self.name}_mod")
 
     @property
     def rig_module(self):
