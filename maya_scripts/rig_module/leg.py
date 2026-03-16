@@ -21,6 +21,7 @@ from maya_scripts.utilities import (
     create_ik_solver_setup,
     mirror_position,
     get_module_from_group,
+    get_mirror_output,
     TextFieldHelper,
     CompoundFieldSlot
 )
@@ -54,7 +55,7 @@ class LegManager:
                 self.limb_side = TextFieldHelper("Leg side ('L' or 'R'): ")
                 self.bind_jnts = pm.intFieldGrp(label="Amount of bind joints: ", numberOfFields=1)
                 self.parent = TextFieldHelper("Parent SETUP Group: ")
-                self.main = TextFieldHelper("Root Group")
+                self.main = TextFieldHelper("Root SETUP Group")
                 self.parent_output = TextFieldHelper("Parent Output Group: ")
                 self.parent_outputGuide = TextFieldHelper("Parent Output Guide: ")
                 self.main_output = TextFieldHelper("Root Controller output group: ")
@@ -178,14 +179,24 @@ class LegManager:
                         mirror_value3
                     ]
                 )
-                pm.connectAttr(self.parent_output.obj.offsetParentMatrix, self.mirror_module.out_parent_input.offsetParentMatrix)
-                pm.connectAttr(self.parent_outputGuide.obj.offsetParentMatrix, self.mirror_module.out_parentGuide_input.offsetParentMatrix)
+                mirror_limb_side = "R" if limb_side == "L" else "L"
+            
+                parent_output_str = str(self.parent_output.obj)
+                mirror_parent_output = get_mirror_output(parent_output_str, limb_side, mirror_limb_side)
+
+                parentGuide_output_str = str(self.parent_outputGuide.obj)
+                mirror_parentGuide_output = get_mirror_output(parentGuide_output_str, limb_side, mirror_limb_side)
+                
+                pm.connectAttr(f"{mirror_parent_output}.offsetParentMatrix", self.mirror_module.out_parent_input.offsetParentMatrix)
+                pm.connectAttr(f"{mirror_parentGuide_output}.offsetParentMatrix", self.mirror_module.out_parentGuide_input.offsetParentMatrix)
 
                 pm.connectAttr(self.main_output.obj.offsetParentMatrix, self.mirror_module.out_main_input.offsetParentMatrix)
                 pm.connectAttr(self.mainGuide_output.obj.offsetParentMatrix, self.mirror_module.out_mainGuide_input.offsetParentMatrix)
 
-            except:
+            except Exception as e:
+                print("MIRROR SHIT - GONE WRONG: ", e)
                 pass
+
 
 class LegModule:
 
@@ -1471,7 +1482,8 @@ class LegModule:
         opposite_fk_color = right_fk_color if self.limb_side == "L" else left_fk_color
         opposite_ik_color = right_ik_color if self.limb_side == "L" else left_ik_color
         
-        current_guide_positions = self.get_guide_positions()    
+        current_guide_positions = self.get_guide_positions()
+        print(f"[Mirror] Guide positions: {current_guide_positions}")
     
         LegModule(
             parent_module=self.parent_module,
@@ -1481,7 +1493,7 @@ class LegModule:
             upper_guide_pos=mirror_position(position=current_guide_positions["upper_guide"], negate_axis=axis),
             lower_guide_pos=mirror_position(position=current_guide_positions["lower_guide"], negate_axis=axis),
             ankle_guide_pos=mirror_position(position=current_guide_positions["ankle_guide"], negate_axis=axis),
-            elbowLock_guide_pos=mirror_position(position=current_guide_positions["kneeLock_guide"], negate_axis=axis),
+            kneeLock_guide_pos=mirror_position(position=current_guide_positions["kneeLock_guide"], negate_axis=axis),
             settings_guide_pos=mirror_position(position=current_guide_positions["settings_guide"], negate_axis=axis),
             foot_guide_pos=mirror_position(position=current_guide_positions["foot_guide"], negate_axis=axis),
             foot_left_bank_guide_pos=mirror_position(position=current_guide_positions["foot_left_bank_guide"], negate_axis=axis),
@@ -1507,14 +1519,14 @@ class LegModule:
         foot_heel_node = pm.PyNode(self._foot_heel_guide_mobj)
         foot_ball_node = pm.PyNode(self._foot_ball_guide_mobj)
         foot_end_node = pm.PyNode(self._foot_end_guide_mobj)
-        elbowLock_node = pm.PyNode(self._kneeLock_guide_mobj)
+        kneeLock_node = pm.PyNode(self._kneeLock_guide_mobj)
         settings_node = pm.PyNode(self._settings_guide_mobj)
         
         return {
             "upper_guide": pm.xform(upper_node, q=True, ws=True, t=True),
             "lower_guide": pm.xform(lower_node,   q=True, ws=True, t=True),
             "ankle_guide": pm.xform(ankle_node,   q=True, ws=True, t=True),
-            "kneeLock_guide": pm.xform(elbowLock_node,   q=True, ws=True, t=True),
+            "kneeLock_guide": pm.xform(kneeLock_node,   q=True, ws=True, t=True),
             "settings_guide": pm.xform(settings_node,   q=True, ws=True, t=True),
             "foot_guide": pm.xform(foot_node,   q=True, ws=True, t=True),
             "foot_left_bank_guide": pm.xform(foot_left_bank_node,   q=True, ws=True, t=True),

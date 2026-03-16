@@ -160,9 +160,7 @@ class LimbManager:
                 )
                 
                 mirror_limb_side = "R" if limb_side == "L" else "L"
-                #mirror_parent_key = f"{self.module.limb_type}_{mirror_limb_side}"
-                #irror_parent_module = registry.get(mirror_parent_key)
-
+            
                 parent_output_str = str(self.parent_output.obj)
                 mirror_parent_output = get_mirror_output(parent_output_str, limb_side, mirror_limb_side)
 
