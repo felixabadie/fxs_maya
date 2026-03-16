@@ -1,5 +1,6 @@
 import json
 import pymel.core as pm
+import maya.api.OpenMaya as om2
 from maya_scripts import control
 from maya_scripts import registry
 from maya_scripts.prox_node_setup.generated_nodes import *
@@ -19,6 +20,7 @@ from maya_scripts.utilities import (
     lock_ctrl_attrs, 
     create_ik_solver_setup,
     mirror_position,
+    get_module_from_group,
     TextFieldHelper,
     CompoundFieldSlot
 )

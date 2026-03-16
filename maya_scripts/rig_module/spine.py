@@ -12,6 +12,7 @@ from maya_scripts.utilities import (
     rebuild_nurbsPlane, 
     add_pin_joints, 
     hierarchy_prep,
+    get_module_from_group,
     TextFieldHelper,
     CompoundFieldSlot
 )
@@ -53,7 +54,11 @@ class SpineManager:
         
         try:
             name = self.name.control.getText()
-            parent = self.parent.control.getText()
+            #parent = self.parent.control.getText()
+
+            parent_module = get_module_from_group(self.parent.obj)
+            parent_name = parent_module.module_name
+
         except AttributeError:
             name = "spine"
 
@@ -87,7 +92,7 @@ class SpineManager:
                 pm.warning(f"{attr_name} contains nonvalid values, used default position")
                 resolved_positions[attr_name] = guide_original_positions[attr_name]
 
-        kwargs = {"parent_module": parent, "name": name, "bind_jnts": bind_jnts}
+        kwargs = {"parent_module": parent_name, "name": name, "bind_jnts": bind_jnts}
         for attr_name, value in resolved_positions.items():
             if value is not None:
                 kwargs[attr_name] = value

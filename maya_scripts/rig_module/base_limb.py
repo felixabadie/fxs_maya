@@ -19,6 +19,8 @@ from maya_scripts.utilities import (
     lock_ctrl_attrs, 
     create_ik_solver_setup,
     mirror_position,
+    get_module_from_group,
+    get_mirror_output,
     TextFieldHelper,
     CompoundFieldSlot
 )
@@ -138,6 +140,8 @@ class LimbManager:
 
         if mirror_value1 == True or mirror_value2 == True or mirror_value3 == True:
             try:
+                print("BEFORE MIRROR\n BEFORE MIRROR")
+                
                 self.mirror_module = self.module.mirror(
                     axis=[
                         mirror_value1,
@@ -145,13 +149,24 @@ class LimbManager:
                         mirror_value3
                     ]
                 )
+                
+                mirror_limb_side = "R" if limb_side == "L" else "L"
+                mirror_parent_key = f"{self.module.limb_type}_{mirror_limb_side}"
+                mirror_parent_module = registry.get(mirror_parent_key)
+
+                a = str(self.parent_output.obj)
+                b = get_mirror_output(a)
+
+                print("potential mirror parent_output: ", b)
+                
                 pm.connectAttr(self.parent_output.obj.offsetParentMatrix, self.mirror_module.out_parent_input.offsetParentMatrix)
                 pm.connectAttr(self.parent_outputGuide.obj.offsetParentMatrix, self.mirror_module.out_parentGuide_input.offsetParentMatrix)
 
                 pm.connectAttr(self.main_output.obj.offsetParentMatrix, self.mirror_module.out_main_input.offsetParentMatrix)
                 pm.connectAttr(self.mainGuide_output.obj.offsetParentMatrix, self.mirror_module.out_mainGuide_input.offsetParentMatrix)
 
-            except:
+            except Exception as e:
+                print("MIRROR SHIT - GONE WRONG: ", e)
                 pass
 
 

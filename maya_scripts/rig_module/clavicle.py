@@ -11,6 +11,7 @@ from maya_scripts.utilities import (
     remove_main_scale, 
     create_pom,
     mirror_position,
+    get_module_from_group,
     TextFieldHelper,
     CompoundFieldSlot
 )

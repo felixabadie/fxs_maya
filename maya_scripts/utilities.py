@@ -1,4 +1,5 @@
 import json
+import re
 import logging
 import pymel.core as pm
 from pathlib import Path
@@ -625,3 +626,6 @@ def get_module_from_group(group):
     except Exception as e:
         pm.error("get module from group error: ", e)
 
+
+def get_mirror_output(output_string, old_letter, new_letter):
+    return output_string.replace(f"{old_letter}", f"{new_letter}")
