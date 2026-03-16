@@ -123,7 +123,7 @@ class LegManager:
 
         guide_origin_positions = {
             "upper_guide_pos": (4, 10, 0),
-            "lower_guide_pos": (0, 1, 0),
+            "lower_guide_pos": (0, 0, 0),
             "ankle_guide_pos": (0, 1, 0),
             "foot_guide_pos": (4, 0, 0),
             "foot_left_bank_guide_pos": (1, 0, 0),
@@ -187,8 +187,11 @@ class LegManager:
                 parentGuide_output_str = str(self.parent_outputGuide.obj)
                 mirror_parentGuide_output = get_mirror_output(parentGuide_output_str, limb_side, mirror_limb_side)
                 
-                pm.connectAttr(f"{mirror_parent_output}.offsetParentMatrix", self.mirror_module.out_parent_input.offsetParentMatrix)
-                pm.connectAttr(f"{mirror_parentGuide_output}.offsetParentMatrix", self.mirror_module.out_parentGuide_input.offsetParentMatrix)
+                try:
+                    pm.connectAttr(f"{mirror_parent_output}.offsetParentMatrix", self.mirror_module.out_parent_input.offsetParentMatrix)
+                    pm.connectAttr(f"{mirror_parentGuide_output}.offsetParentMatrix", self.mirror_module.out_parentGuide_input.offsetParentMatrix)
+                except Exception as me:
+                    print("CONNECTING MIRROR PROBLEM: ", me)
 
                 pm.connectAttr(self.main_output.obj.offsetParentMatrix, self.mirror_module.out_main_input.offsetParentMatrix)
                 pm.connectAttr(self.mainGuide_output.obj.offsetParentMatrix, self.mirror_module.out_mainGuide_input.offsetParentMatrix)
@@ -1485,7 +1488,7 @@ class LegModule:
         current_guide_positions = self.get_guide_positions()
         print(f"[Mirror] Guide positions: {current_guide_positions}")
     
-        LegModule(
+        module = LegModule(
             parent_module=self.parent_module,
             main_module=self.main_module,
             limb_type=self.limb_type,
@@ -1506,6 +1509,7 @@ class LegModule:
             bind_jnts=self.bind_jnts,
             upper_guide_rot=self.upper_guide_rot
         )
+        return module
     
     def get_guide_positions(self) -> dict:
         """Get current guide positions"""
