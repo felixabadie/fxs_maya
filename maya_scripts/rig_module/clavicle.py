@@ -37,7 +37,7 @@ class ClavicleManager:
             with pm.columnLayout(adj=True):
                 self.name = TextFieldHelper("Clavicle / Leg-start name: ")
                 self.limb_side = TextFieldHelper("Limb side ('L' or 'R'): ")
-                self.parent = TextFieldHelper("Parent Group: ")
+                self.parent = TextFieldHelper("Parent SETUP Group: ")
                 self.parent_output = TextFieldHelper("Parent Output Group: ")
                 self.parent_outputGuide = TextFieldHelper("Parent Output Guide: ")
                 self.start_guide_pos = CompoundFieldSlot("Start position: ")
@@ -51,12 +51,11 @@ class ClavicleManager:
     
     def execute(self, *args):
         
-        try:
-            name = self.name.control.getText()
-            limb_side = self.limb_side.control.getText()
-            parent = self.parent.control.getText()
-        except AttributeError:
-            pm.error("Naming Problem")
+        name = self.name.control.getText()
+        limb_side = self.limb_side.control.getText()
+        
+        parent_mod = get_module_from_group(self.parent.obj)
+        parent = parent_mod.module_name
 
         if limb_side == "L":
             clavicle_ctrl_color = left_fk_color

@@ -53,7 +53,7 @@ class LegManager:
                 self.name = TextFieldHelper("Leg name: ")
                 self.limb_side = TextFieldHelper("Leg side ('L' or 'R'): ")
                 self.bind_jnts = pm.intFieldGrp(label="Amount of bind joints: ", numberOfFields=1)
-                self.parent = TextFieldHelper("Parent Group: ")
+                self.parent = TextFieldHelper("Parent SETUP Group: ")
                 self.main = TextFieldHelper("Root Group")
                 self.parent_output = TextFieldHelper("Parent Output Group: ")
                 self.parent_outputGuide = TextFieldHelper("Parent Output Guide: ")
@@ -80,14 +80,15 @@ class LegManager:
     
     def execute(self, *args):
         
-        try:
-            name = self.name.control.getText()
-            limb_side = self.limb_side.control.getText()
-            parent = self.parent.control.getText()
-            main = self.main.control.getText()
-        except AttributeError:
-            pm.error("Naming Error")
-
+        name = self.name.control.getText()
+        limb_side = self.limb_side.control.getText()
+        
+        parent_mod = get_module_from_group(self.parent.obj)
+        parent = parent_mod.module_name
+        
+        main_mod = get_module_from_group(self.main.obj)
+        main = main_mod.module_name
+        
         if pm.intFieldGrp(self.bind_jnts, query=True, value1=True) > 0:
             bind_jnts = pm.intFieldGrp(self.bind_jnts, query=True, value1=True)
         else:

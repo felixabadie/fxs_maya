@@ -1,7 +1,7 @@
 import pymel.core as pm
 from maya_scripts import registry
 from maya_scripts.prox_node_setup.generated_nodes import *
-from maya_scripts.utilities import TextFieldHelper, CompoundFieldSlot, get_module_from_group
+from maya_scripts.utilities import TextFieldHelper, CompoundFieldSlot, get_module_from_group, get_mirror_output
 
 
 class AddParent:

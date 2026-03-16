@@ -45,8 +45,8 @@ class LimbManager:
                 self.name = TextFieldHelper("Limb name: ")
                 self.limb_side = TextFieldHelper("Limb side ('L' or 'R'): ")
                 self.bind_jnts = pm.intFieldGrp(label="Amount bind joints: ", numberOfFields=1)
-                self.parent = TextFieldHelper("Parent Group: ")
-                self.main = TextFieldHelper("Root Group")
+                self.parent = TextFieldHelper("Parent SETUP Group: ")
+                self.main = TextFieldHelper("Root SETUP Group")
                 self.parent_output = TextFieldHelper("Parent Output Group: ")
                 self.parent_outputGuide = TextFieldHelper("Parent Output Guide: ")
                 self.main_output = TextFieldHelper("Root Controller output group: ")
@@ -69,8 +69,12 @@ class LimbManager:
         try:
             name = self.name.control.getText()
             limb_side = self.limb_side.control.getText()
-            parent = self.parent.control.getText()
-            main = self.main.control.getText()
+            
+            parent_mod = get_module_from_group(self.parent.obj)
+            parent = parent_mod.module_name
+
+            main_mod = get_module_from_group(self.main.obj)
+            main = main_mod.module_name
 
         except AttributeError:
             pm.error("Naming Error")
@@ -104,8 +108,8 @@ class LimbManager:
             "lower_guide_pos": (0, 0, 0),
             "hand_guide_pos": (14, 25, 0),
             "elbowLock_guide_pos": (9, 25, -7),
-            "upper_guide_rot": (5, 25, -4),
-            "settings_guide_pos": (0, 0, 0)
+            "upper_guide_rot": (0, 0, 0),
+            "settings_guide_pos": (5, 25, -4)
         }
 
         resolved_positions = {}
@@ -140,7 +144,6 @@ class LimbManager:
 
         if mirror_value1 == True or mirror_value2 == True or mirror_value3 == True:
             try:
-                print("BEFORE MIRROR\n BEFORE MIRROR")
                 
                 self.mirror_module = self.module.mirror(
                     axis=[
@@ -151,16 +154,17 @@ class LimbManager:
                 )
                 
                 mirror_limb_side = "R" if limb_side == "L" else "L"
-                mirror_parent_key = f"{self.module.limb_type}_{mirror_limb_side}"
-                mirror_parent_module = registry.get(mirror_parent_key)
+                #mirror_parent_key = f"{self.module.limb_type}_{mirror_limb_side}"
+                #irror_parent_module = registry.get(mirror_parent_key)
 
-                a = str(self.parent_output.obj)
-                b = get_mirror_output(a)
+                parent_output_str = str(self.parent_output.obj)
+                mirror_parent_output = get_mirror_output(parent_output_str, limb_side, mirror_limb_side)
 
-                print("potential mirror parent_output: ", b)
+                parentGuide_output_str = str(self.parent_outputGuide.obj)
+                mirror_parentGuide_output = get_mirror_output(parentGuide_output_str, limb_side, mirror_limb_side)
                 
-                pm.connectAttr(self.parent_output.obj.offsetParentMatrix, self.mirror_module.out_parent_input.offsetParentMatrix)
-                pm.connectAttr(self.parent_outputGuide.obj.offsetParentMatrix, self.mirror_module.out_parentGuide_input.offsetParentMatrix)
+                pm.connectAttr(f"{mirror_parent_output}.offsetParentMatrix", self.mirror_module.out_parent_input.offsetParentMatrix)
+                pm.connectAttr(f"{mirror_parentGuide_output}.offsetParentMatrix", self.mirror_module.out_parentGuide_input.offsetParentMatrix)
 
                 pm.connectAttr(self.main_output.obj.offsetParentMatrix, self.mirror_module.out_main_input.offsetParentMatrix)
                 pm.connectAttr(self.mainGuide_output.obj.offsetParentMatrix, self.mirror_module.out_mainGuide_input.offsetParentMatrix)
