@@ -1,5 +1,6 @@
-import json
 import re
+import json
+from json import JSONEncoder
 import logging
 import pymel.core as pm
 from pathlib import Path
@@ -629,3 +630,20 @@ def get_module_from_group(group):
 
 def get_mirror_output(output_string, old_letter, new_letter):
     return output_string.replace(f"{old_letter}", f"{new_letter}")
+
+
+def export_json_data(data, export_path):
+    with open(export_path, "w") as f:
+        json.dump(data, f, indent=4)
+
+
+def read_json_data(path):
+    with open(path, "r") as f:
+        data = json.load(f)
+
+    return data
+
+
+class ModuleEncoder(JSONEncoder):
+        def default(self, o):
+            return o.__dict__
