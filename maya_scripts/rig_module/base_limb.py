@@ -182,7 +182,7 @@ class LimbModule:
 
     def __init__(self, parent_module:str, main_module:str, limb_type:str, limb_side:str, bind_jnts=10, upper_guide_pos:tuple = (4, 25, 0), lower_guide_pos:tuple = (0, 0, 0), 
                  hand_guide_pos:tuple = (14, 25, 0), elbowLock_guide_pos:tuple = (9, 25, -7), settings_guide_pos:tuple = (5, 25, -4), 
-                 upper_guide_rot:tuple = (0, 0, 0), fk_color:list = [0, 0, 1], ik_color:list = [0, 0.85, 0.83]):
+                 upper_guide_rot:tuple = (0, 0, 0), fk_color:list = [0, 0, 1], ik_color:list = [0, 0.85, 0.83], _reconstruct:bool = False, input_list:list = None, elbowLock_list:list = None):
         
     
         
@@ -225,6 +225,12 @@ class LimbModule:
         self.bind_jnts = bind_jnts
         self.parent_module = parent_module
         self.main_module = main_module
+
+        if _reconstruct:
+            self._reconstruct_input_list = input_list
+            self._reconstruct_elbowLock_list = elbowLock_list
+            self._attach_to_scene()
+            return
 
         self.groups = create_groups(rig_module_name=self.name)
         
@@ -1153,10 +1159,10 @@ class LimbModule:
         pm.connectAttr(hand_WPos.output, lower_proxy_helperShape.controlPoints[1])
 
         #outputs (could be removed later)
-        self.hand_output = transform(name=f"{self.name}_self.hand_output")
+        self.hand_output = transform(name=f"{self.name}_hand_output")
         pm.connectAttr(hand_WM.matrixSum, self.hand_output.offsetParentMatrix)
 
-        self.handGuide_output = transform(name=f"{self.name}_self.handGuide_output")
+        self.handGuide_output = transform(name=f"{self.name}_handGuide_output")
         pm.connectAttr(self.hand_guide.worldMatrix[0], self.handGuide_output.offsetParentMatrix)
 
         outliner_data = {
@@ -1175,6 +1181,87 @@ class LimbModule:
                     pm.parent(node.node, self.groups[group_name].node)
                 except:
                     pm.parent(node, self.groups[group_name].node)
+
+        self._write_meta_data()
+
+    def _write_meta_data(self):
+        """Write reconstruction parameters on SETUP node"""
+        root_node = self.groups["SETUP"].node
+        meta = {
+            "moduleType":     "LimbModule",
+            "limb_type":      self.limb_type,
+            "limb_side":      self.limb_side,
+            "parent_module":  self.parent_module,
+            "main_module":    self.main_module,
+            "bind_jnts":      str(self.bind_jnts),
+            "upperGuideRotX": str(self.upper_guide_rot[0]),
+            "upperGuideRotY": str(self.upper_guide_rot[1]),
+            "upperGuideRotZ": str(self.upper_guide_rot[2]),
+            "input_list":     json.dumps(self.input_list),
+            "elbowLock_list": json.dumps(self.elbowLock_list),
+        }
+        for k, v in meta.items():
+            if not root_node.hasAttribute(k):
+                root_node.addAttr(k, dataType="string", keyable=False)
+            root_node.attr(k).set(str(v))
+
+
+    def _attach_to_scene(self):
+        """description"""
+        self.groups = {
+            "SETUP":    pm.PyNode(f"{self.name}_SETUP"),
+            "inputs":   pm.PyNode(f"{self.name}_inputs"),
+            "guides":   pm.PyNode(f"{self.name}_guides"),
+            "controls": pm.PyNode(f"{self.name}_controls"),
+            "helpers":  pm.PyNode(f"{self.name}_helpers"),
+            "joints":   pm.PyNode(f"{self.name}_joints"),
+            "rigNodes": pm.PyNode(f"{self.name}_rigNodes"),
+            "outputs":  pm.PyNode(f"{self.name}_outputs"),
+        }
+
+        # Guides
+        self.upper_guide     = pm.PyNode(f"{self.name}_upper_guide")
+        self.lower_guide     = pm.PyNode(f"{self.name}_lower_guide")
+        self.hand_guide      = pm.PyNode(f"{self.name}_hand_guide")
+        self.elbowLock_guide = pm.PyNode(f"{self.name}_elbowLock_guide")
+        self.settings_guide  = pm.PyNode(f"{self.name}_settings_guide")
+
+        # MObject Handles neu holen — alte sind nach Scene-Neuöffnung ungültig
+        self._upper_guide_mobj     = self.upper_guide.__apimobject__()
+        self._lower_guide_mobj     = self.lower_guide.__apimobject__()
+        self._hand_guide_mobj      = self.hand_guide.__apimobject__()
+        self._elbowLock_guide_mobj = self.elbowLock_guide.__apimobject__()
+        self._settings_guide_mobj  = self.settings_guide.__apimobject__()
+
+        # Inputs
+        self.main_input               = pm.PyNode(f"{self.name}_{self.main_module}_input")
+        self.mainGuide_input          = pm.PyNode(f"{self.name}_{self.main_module}Guide_input")
+        self.parent_module_input      = pm.PyNode(f"{self.name}_{self.parent_module}_input")
+        self.parent_moduleGuide_input = pm.PyNode(f"{self.name}_{self.parent_module}Guide_input")
+
+        # Controls
+        self.settings_ctrl     = pm.PyNode(f"{self.name}_settings_ctrl")
+        self.elbowLock_IK_ctrl = pm.PyNode(f"{self.name}_elbowLock_IK_ctrl")
+
+        # Space-Switch Nodes needed by addParent()
+        self.upper_FK_ctrl_rotWM  = pm.PyNode(f"{self.name}_upper_FK_ctrl_rotWM")
+        self.hand_IK_ctrl_WM      = pm.PyNode(f"{self.name}_hand_IK_ctrl_WM")
+        self.elbow_IK_baseWM      = pm.PyNode(f"{self.name}_elbow_IK_baseWM")
+        self.elbowLock_IK_ctrl_WM = pm.PyNode(f"{self.name}_elbowLock_IK_ctrl_WM")
+        self.orientPlane_guide    = pm.PyNode(f"{self.name}_orientPlane_guide")
+        self.hand_FK_guide_outWM  = pm.PyNode(f"{self.name}_hand_FK_guide_outWM")
+        self.upper_FK_guide_outWM = pm.PyNode(f"{self.name}_upper_FK_guide_outWM")
+
+        # Outputs
+        self.hand_output      = pm.PyNode(f"{self.name}_hand_output")
+        self.handGuide_output = pm.PyNode(f"{self.name}_handGuide_output")
+
+        # Listen aus Node-Attributen lesen
+        root_node = self.groups["SETUP"].node
+        self.input_list = self._reconstruct_input_list or json.loads(root_node.attr("input_list").get())
+        self.elbowLock_list = self._reconstruct_elbowLock_list or json.loads(root_node.attr("elbowLock_list").get())
+
+        registry.register(self.name, self)
 
 
     def addParent(self, parent_name="parent"):
@@ -1244,7 +1331,12 @@ class LimbModule:
         pm.connectAttr(parent_input.offsetParentMatrix, self.elbowLock_IK_ctrl_WM.target[elbowTarget_index].targetMatrix)
         pm.connectAttr(elbowLock_IK_ctrl_parentSpacePOM.matrixSum, self.elbowLock_IK_ctrl_WM.target[elbowTarget_index].offsetMatrix)
 
+        root_node = self.groups["SETUP"].node
+        root_node.attr("input_list").set(json.dumps(self.input_list))
+        root_node.attr("elbowLock_list").set(json.dumps(self.elbowLock_list))
+
         return parent_input, parentGuide_input
+    
 
     def mirror(self, axis:list = [1, 0, 0]):
         """Mirror module based on list input marking the position to be mirrored"""

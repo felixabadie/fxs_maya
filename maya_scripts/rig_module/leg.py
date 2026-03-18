@@ -206,7 +206,7 @@ class LegModule:
     def __init__(self, parent_module:str, main_module:str, limb_type:str, limb_side:str, bind_jnts=10, upper_guide_pos:tuple = (4, 10, 0), lower_guide_pos:tuple = (0, 1, 0), 
                  ankle_guide_pos:tuple = (0, 1, 0), foot_guide_pos:tuple = (4, 0, 0), foot_left_bank_guide_pos:tuple = (1, 0, 0), foot_right_bank_guide_pos:tuple = (-1, 0, 0), 
                  foot_heel_guide_pos:tuple = (0, 0, -1), foot_end_guide_pos:tuple = (0, 0, 5), foot_ball_guide_pos:tuple = (0, 0, 3), kneeLock_guide_pos:tuple = (4, 5, 8), 
-                 settings_guide_pos:tuple = (5, 13, -2), upper_guide_rot:tuple = (180, 0, 0), fk_color:list = [0, 0, 1], ik_color:list = [0, 0.85, 0.83]):
+                 settings_guide_pos:tuple = (5, 13, -2), upper_guide_rot:tuple = (180, 0, 0), fk_color:list = [0, 0, 1], ik_color:list = [0, 0.85, 0.83], _reconstruct:bool = False, input_list:list = None, kneeLock_list:list = None):
         """
         Creates a limb-rig-module based on the tutorials of Jean Paul Tossings. The module can be adapted thanks to guides and be repositioned at any time.
         The Module contains a math-based IK-Solver, an IK/FK Blend, manually scalable segments, softIK to prevent snapping and a ribbon.
@@ -259,6 +259,12 @@ class LegModule:
         self.parent_module = parent_module
         self.main_module = main_module
         
+        if _reconstruct:
+            self._reconstruct_input_list = input_list
+            self._reconstruct_kneeLock_list = kneeLock_list
+            self._attach_to_scene()
+            return
+
         self.groups = create_groups(rig_module_name=self.name)
 
         registry.register(self.name, self)
@@ -1411,6 +1417,101 @@ class LegModule:
                     pm.parent(node.node, self.groups[group_name].node)
                 except:
                     pm.parent(node, self.groups[group_name].node)
+
+        self._write_meta_data()
+
+
+    def _write_meta_data(self):
+        """Write reconstruction parameters on SETUP node"""
+        root_node = self.groups["SETUP"].node
+        meta = {
+            "moduleType":     "LimbModule",
+            "limb_type":      self.limb_type,
+            "limb_side":      self.limb_side,
+            "parent_module":  self.parent_module,
+            "main_module":    self.main_module,
+            "bind_jnts":      str(self.bind_jnts),
+            "upperGuideRotX": str(self.upper_guide_rot[0]),
+            "upperGuideRotY": str(self.upper_guide_rot[1]),
+            "upperGuideRotZ": str(self.upper_guide_rot[2]),
+            "input_list":     json.dumps(self.input_list),
+            "kneeLock_list": json.dumps(self.kneeLock_list),
+        }
+        for k, v in meta.items():
+            if not root_node.hasAttribute(k):
+                root_node.addAttr(k, dataType="string", keyable=False)
+            root_node.attr(k).set(str(v))
+
+
+    def _attach_to_scene(self):
+        """description"""
+        self.groups = {
+            "SETUP":    pm.PyNode(f"{self.name}_SETUP"),
+            "inputs":   pm.PyNode(f"{self.name}_inputs"),
+            "guides":   pm.PyNode(f"{self.name}_guides"),
+            "controls": pm.PyNode(f"{self.name}_controls"),
+            "helpers":  pm.PyNode(f"{self.name}_helpers"),
+            "joints":   pm.PyNode(f"{self.name}_joints"),
+            "rigNodes": pm.PyNode(f"{self.name}_rigNodes"),
+            "outputs":  pm.PyNode(f"{self.name}_outputs"),
+        }
+
+        # Guides
+        self.upper_guide     = pm.PyNode(f"{self.name}_upper_guide")
+        self.lower_guide     = pm.PyNode(f"{self.name}_lower_guide")
+        self.ankle_guide      = pm.PyNode(f"{self.name}_ankle_guide")
+        self.kneeLock_guide = pm.PyNode(f"{self.name}_kneeLock_guide")
+        self.settings_guide  = pm.PyNode(f"{self.name}_settings_guide")
+        self.foot_guide = pm.PyNode(f"{self.name}_foot_guide")
+        self.foot_left_bank_guide = pm.PyNode(f"{self.name}_foot_left_bank_guide")
+        self.foot_right_bank_guide = pm.PyNode(f"{self.name}_foot_right_bank_guide")
+        self.foot_heel_guide = pm.PyNode(f"{self.name}_foot_heel_guide")
+        self.foot_ball_guide = pm.PyNode(f"{self.name}_foot_ball_guide")
+        self.foot_end_guide = pm.PyNode(f"{self.name}_foot_end_guide")
+
+        # MObject Handles neu holen — alte sind nach Scene-Neuöffnung ungültig
+        self._upper_guide_mobj     = self.upper_guide.__apimobject__()
+        self._lower_guide_mobj     = self.lower_guide.__apimobject__()
+        self._ankle_guide_mobj      = self.ankle_guide.__apimobject__()
+        self._kneeLock_guide_mobj = self.kneeLock_guide.__apimobject__()
+        self._settings_guide_mobj  = self.settings_guide.__apimobject__()
+        self._foot_guide_mobj = self.foot_guide.__apimobject__()
+        self._foot_left_bank_guide_mobj = self.foot_left_bank_guide.__apimobject__()
+        self._foot_right_bank_guide_mobj = self.foot_right_bank_guide.__apimobject__()
+        self._foot_heel_guide_mobj = self.foot_heel_guide.__apimobject__()
+        self._foot_ball_guide_mobj = self.foot_ball_guide.__apimobject__()
+        self._foot_end_guide_mobj = self.foot_end_guide.__apimobject__()
+
+        # Inputs
+        self.main_input               = pm.PyNode(f"{self.name}_{self.main_module}_input")
+        self.mainGuide_input          = pm.PyNode(f"{self.name}_{self.main_module}Guide_input")
+        self.parent_module_input      = pm.PyNode(f"{self.name}_{self.parent_module}_input")
+        self.parent_moduleGuide_input = pm.PyNode(f"{self.name}_{self.parent_module}Guide_input")
+
+        # Controls
+        self.settings_ctrl     = pm.PyNode(f"{self.name}_settings_ctrl")
+        self.kneeLock_IK_ctrl = pm.PyNode(f"{self.name}_kneeLock_IK_ctrl")
+
+        # Space-Switch Nodes needed by addParent()
+        self.upper_FK_ctrl_rotWM  = pm.PyNode(f"{self.name}_upper_FK_ctrl_rotWM")
+        self.ankle_IK_ctrl_WM      = pm.PyNode(f"{self.name}_ankle_IK_ctrl_WM")
+        self.knee_IK_baseWM      = pm.PyNode(f"{self.name}_knee_IK_baseWM")
+        self.kneeLock_IK_ctrl_WM = pm.PyNode(f"{self.name}_kneeLock_IK_ctrl_WM")
+        self.orientPlane_guide    = pm.PyNode(f"{self.name}_orientPlane_guide")
+        self.ankle_FK_guide_outWM  = pm.PyNode(f"{self.name}_ankle_FK_guide_outWM")
+        self.upper_FK_guide_outWM = pm.PyNode(f"{self.name}_upper_FK_guide_outWM")
+
+        # Outputs
+        self.ankle_output      = pm.PyNode(f"{self.name}_ankle_output")
+        self.ankleGuide_output = pm.PyNode(f"{self.name}_ankleGuide_output")
+
+        # Listen aus Node-Attributen lesen
+        root_node = self.groups["SETUP"].node
+        self.input_list = self._reconstruct_input_list or json.loads(root_node.attr("input_list").get())
+        self.kneeLock_list = self._reconstruct_kneeLock_list or json.loads(root_node.attr("kneeLock_list").get())
+
+        registry.register(self.name, self)
+
 
     def addParent(self, parent_name="parent"):
         """Adds a new parent internally by creating attributes, connections and inputs.

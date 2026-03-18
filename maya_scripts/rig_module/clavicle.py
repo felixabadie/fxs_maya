@@ -123,7 +123,7 @@ class ClavicleManager:
                 pass
 
 class ClavicleModule:
-    def __init__(self, parent_module:str, limb_type:str, limb_side:str, start_guide_pos:tuple = (2, 24, 1), end_guide_pos:tuple = (3, 26, 0), clavicle_ctrl_color:list = [0, 0, 0]):
+    def __init__(self, parent_module:str, limb_type:str, limb_side:str, start_guide_pos:tuple = (2, 24, 1), end_guide_pos:tuple = (3, 26, 0), clavicle_ctrl_color:list = [0, 0, 0], _reconstruct:bool = False):
 
         """
         Creates clavicle rigging module
@@ -148,6 +148,10 @@ class ClavicleModule:
         self.limb_side = limb_side
         self.parent_module = parent_module
 
+        if _reconstruct:
+            self._attach_to_scene()
+            return
+
         groups = create_groups(rig_module_name=self.name)
         self.groups = groups
 
@@ -167,8 +171,8 @@ class ClavicleModule:
         self.parent_input = transform(name=f"{self.name}_{parent_module}_input")
         self.parentGuide_input = transform(name=f"{self.name}_{parent_module}Guide_input")
 
-        self.end_output = transform(name=f"{self.name}_self.end_output")
-        self.endGuide_output = transform(name=f"{self.name}_self.endGuide_output")
+        self.end_output = transform(name=f"{self.name}_end_output")
+        self.endGuide_output = transform(name=f"{self.name}_endGuide_output")
 
         start_guide_orientedM = aimMatrix(name=f"{self.name}_start_guide_orientedM")
         pm.connectAttr(self.start_guide.worldMatrix[0], start_guide_orientedM.inputMatrix)
@@ -270,6 +274,49 @@ class ClavicleModule:
                         pm.parent(node, self.groups[group_name].node)
             except:
                 pass
+
+        self._write_metadata()
+
+    def _write_metadata(self):
+        """writes reconstruction-parametres in SETUP node"""
+        root_node = self.groups["SETUP"].node
+        meta = {
+            "moduleType":   "ClavicleModule",
+            "limb_type":    self.limb_type,
+            "limb_side":    self.limb_side,
+            "parent_module": self.parent_module,
+        }
+        for k, v in meta.items():
+            if not root_node.hasAttribute(k):
+                root_node.addAttr(k, dataType="string", keyable=False)
+            root_node.attr(k).set(str(v))
+
+
+    def _attach_to_scene(self):
+        """description"""
+        self.groups = {
+            "SETUP":    pm.PyNode(f"{self.name}_SETUP"),
+            "inputs":   pm.PyNode(f"{self.name}_inputs"),
+            "guides":   pm.PyNode(f"{self.name}_guides"),
+            "controls": pm.PyNode(f"{self.name}_controls"),
+            "helpers":  pm.PyNode(f"{self.name}_helpers"),
+            "joints":   pm.PyNode(f"{self.name}_joints"),
+            "rigNodes": pm.PyNode(f"{self.name}_rigNodes"),
+            "outputs":  pm.PyNode(f"{self.name}_outputs"),
+        }
+        self.start_guide       = pm.PyNode(f"{self.name}_start_guide")
+        self.end_guide         = pm.PyNode(f"{self.name}_end_guide")
+        self.parent_input      = pm.PyNode(f"{self.name}_{self.parent_module}_input")
+        self.parentGuide_input = pm.PyNode(f"{self.name}_{self.parent_module}Guide_input")
+        self.end_output        = pm.PyNode(f"{self.name}_end_output")
+        self.endGuide_output   = pm.PyNode(f"{self.name}_endGuide_output")
+
+        #get MObject handles again because old ones are no longer valid
+        self._start_guide_mobj = self.start_guide.__apimobject__()
+        self._end_guide_mobj   = self.end_guide.__apimobject__()
+
+        registry.register(self.name, self)
+
 
     def mirror(self, axis:list = [1, 0, 0]):
         """Mirror module based on list input marking the position to be mirrored"""
