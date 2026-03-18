@@ -351,7 +351,7 @@ class LimbModule:
         elbow_IK_ctrl = control.create(ctrl_type="pyramid", degree=1, name=f"{self.name}_elbow_IK_ctrl", size=[0.5, 6, 0.5], color=ik_color)
         lock_ctrl_attrs(elbow_IK_ctrl, ["translateX", "translateY", "translateZ", "rotateY", "rotateZ", "scaleX", "scaleY", "scaleZ"])
 
-        self.elbowLock_IK_ctrl = control.create(ctrl_type="box", degree=1, name="elbowLock_IK_ctrl", size=[1, 1, 1], color=ik_color)
+        self.elbowLock_IK_ctrl = control.create(ctrl_type="box", degree=1, name=f"{self.name}_elbowLock_IK_ctrl", size=[1, 1, 1], color=ik_color)
         lock_ctrl_attrs(self.elbowLock_IK_ctrl, attrs_to_lock=["rotateX", "rotateY", "rotateZ", "scaleX", "scaleY", "scaleZ"])
 
         self.elbowLock_IK_ctrl.node.addAttr(attr="Lock", attributeType="float", defaultValue=0, minValue=0, maxValue=1, hidden=False, keyable=True)

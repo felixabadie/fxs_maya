@@ -47,7 +47,7 @@ def _reconstruct_from_scene(name:str):
     try:
         kwargs = {"_reconstruct": True}
 
-        str_attr_map = ["name", "limb_type", "limb_side", "parent_module", "main_module"]
+        str_attr_map = ["module_name", "limb_type", "limb_side", "parent_module", "main_module"]
 
         for attr in str_attr_map:
             if node.hasAttribute(attr):
@@ -55,10 +55,15 @@ def _reconstruct_from_scene(name:str):
         
         print("Print Kwargs str_attr: ", kwargs)
 
-        optional_int_attrs = ["bind_jnts", "ctrl_size"]
+        optional_int_attrs = ["bind_jnts"]
         for attr in optional_int_attrs:
             if node.hasAttribute(attr):
                 kwargs[attr] = int(node.attr(attr).get())
+
+        optional_float_attrs = ["ctrl_size"]
+        for attr in optional_float_attrs:
+            if node.hasAttribute(attr):
+                kwargs[attr] = float(node.attr(attr).get())
 
         if node.hasAttribute("upperGuideRotX"):
             kwargs["upper_guide_rot"] = (
@@ -67,11 +72,14 @@ def _reconstruct_from_scene(name:str):
                 0,
             )
 
-        if node.hasAttribute("inputList"):
-            kwargs["input_list"] = json.loads(node.attr("inputList").get())
+        if node.hasAttribute("input_list"):
+            kwargs["input_list"] = json.loads(node.attr("input_list").get())
 
-        if node.hasAttribute("elbowLockList"):
-            kwargs["elbow_lock_list"] = json.loads(node.attr("elbowLockList").get())
+        if node.hasAttribute("elbowLock_list"):
+            kwargs["elbowLock_list"] = json.loads(node.attr("elbowLock_list").get())
+
+        if node.hasAttribute("kneeLock_list"):
+            kwargs["kneeLock_list"] = json.loads(node.attr("kneeLock_list").get())
 
         print("Kwargs after input list: ", kwargs)
 

@@ -403,7 +403,7 @@ class LegModule:
         knee_IK_ctrl = control.create(ctrl_type="pyramid", degree=1, name=f"{self.name}_knee_IK_ctrl", size=[0.5, 6, 0.5], color=ik_color)
         lock_ctrl_attrs(knee_IK_ctrl, ["translateX", "translateY", "translateZ", "rotateY", "rotateZ", "scaleX", "scaleY", "scaleZ"])
 
-        self.kneeLock_IK_ctrl = control.create(ctrl_type="box", degree=1, name="kneeLock_IK_ctrl", size=[1, 1, 1], color=ik_color)
+        self.kneeLock_IK_ctrl = control.create(ctrl_type="box", degree=1, name=f"{self.name}_kneeLock_IK_ctrl", size=[1, 1, 1], color=ik_color)
         lock_ctrl_attrs(self.kneeLock_IK_ctrl, attrs_to_lock=["rotateX", "rotateY", "rotateZ", "scaleX", "scaleY", "scaleZ"])
 
         self.kneeLock_IK_ctrl.node.addAttr(attr="Lock", attributeType="float", defaultValue=0, minValue=0, maxValue=1, hidden=False, keyable=True)
@@ -1425,7 +1425,7 @@ class LegModule:
         """Write reconstruction parameters on SETUP node"""
         root_node = self.groups["SETUP"].node
         meta = {
-            "moduleType":     "LimbModule",
+            "moduleType":     "LegModule",
             "limb_type":      self.limb_type,
             "limb_side":      self.limb_side,
             "parent_module":  self.parent_module,
@@ -1494,7 +1494,7 @@ class LegModule:
 
         # Space-Switch Nodes needed by addParent()
         self.upper_FK_ctrl_rotWM  = pm.PyNode(f"{self.name}_upper_FK_ctrl_rotWM")
-        self.ankle_IK_ctrl_WM      = pm.PyNode(f"{self.name}_ankle_IK_ctrl_WM")
+        self.foot_IK_ctrl_WM      = pm.PyNode(f"{self.name}_foot_IK_ctrl_WM")
         self.knee_IK_baseWM      = pm.PyNode(f"{self.name}_knee_IK_baseWM")
         self.kneeLock_IK_ctrl_WM = pm.PyNode(f"{self.name}_kneeLock_IK_ctrl_WM")
         self.orientPlane_guide    = pm.PyNode(f"{self.name}_orientPlane_guide")

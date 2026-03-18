@@ -91,7 +91,7 @@ class SpineManager:
                 pm.warning(f"{attr_name} contains nonvalid values, used default position")
                 resolved_positions[attr_name] = guide_original_positions[attr_name]
 
-        kwargs = {"parent_module": parent, "name": name, "bind_jnts": bind_jnts}
+        kwargs = {"parent_module": parent, "module_name": name, "bind_jnts": bind_jnts}
         for attr_name, value in resolved_positions.items():
             if value is not None:
                 kwargs[attr_name] = value
@@ -106,10 +106,10 @@ class SpineManager:
         
 
 class SpineModule:
-    def __init__(self, parent_module:str, name:str = "spine", bind_jnts=10, com_guide_pos:tuple = (0, 14, 0), hip_guide_pos:tuple = (0, 12, 0), 
+    def __init__(self, parent_module:str, module_name:str = "spine", bind_jnts=10, com_guide_pos:tuple = (0, 14, 0), hip_guide_pos:tuple = (0, 12, 0), 
                  mid_guide_pos:tuple = (0, 0, 0), chest_guide_pos:tuple = (0, 24, 0), settings_guide_pos:tuple = (5, 16, 0), _reconstruct:bool = False):
         
-        self.name = name
+        self.name = module_name
         self.parent_module = parent_module
 
         if _reconstruct:
@@ -435,8 +435,8 @@ class SpineModule:
         """writes reconstruction-parameters in SETUP node"""
         root_node = self.groups["SETUP"].node
         meta = {
-            "moduleType": "ClavicleModule",
-            "name": self.name,
+            "moduleType": "SpineModule",
+            "module_name": self.name,
             "bind_jnts": str(self.bind_jnts),
             "parent_module": self.parent_module
         }

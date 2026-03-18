@@ -35,12 +35,12 @@ class RootManager:
             name = "root"
         ctrl_size = pm.floatFieldGrp(self.ctrl_size, query=True, value1=True)
 
-        module = RootModule(name=name, ctrl_size=ctrl_size)
+        module = RootModule(module_name=name, ctrl_size=ctrl_size)
 
 class RootModule:
-    def __init__(self, name:str, ctrl_size:int, _reconstruct:bool = False):
+    def __init__(self, module_name:str, ctrl_size:int, _reconstruct:bool = False):
         
-        self.name = name
+        self.name = module_name
         self.ctrl_size = ctrl_size
 
         if _reconstruct:
@@ -93,12 +93,13 @@ class RootModule:
         root_node = self.groups["SETUP"].node
         meta = {
             "moduleType": "RootModule",
-            "ctrl_size": self.ctrl_size
+            "module_name": self.name,
+            "ctrl_size": str(self.ctrl_size)
         }
-        if not root_node.hasAttribute("moduleType"):
-            root_node.addAttr("moduleType", dataType="string", keyable=False)
-        root_node.attr("moduleType").set("RootModule")
-
+        for k, v in meta.items():
+            if not root_node.hasAttribute(k):
+                root_node.addAttr(k, dataType="string", keyable=False)
+            root_node.attr(k).set(str(v))
     
     def _attach_to_scene(self):
         """description"""
