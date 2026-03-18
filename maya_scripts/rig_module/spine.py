@@ -107,13 +107,19 @@ class SpineManager:
 
 class SpineModule:
     def __init__(self, parent_module:str, name:str = "spine", bind_jnts=10, com_guide_pos:tuple = (0, 14, 0), hip_guide_pos:tuple = (0, 12, 0), 
-                 mid_guide_pos:tuple = (0, 0, 0), chest_guide_pos:tuple = (0, 24, 0), settings_guide_pos:tuple = (5, 16, 0)):
+                 mid_guide_pos:tuple = (0, 0, 0), chest_guide_pos:tuple = (0, 24, 0), settings_guide_pos:tuple = (5, 16, 0), _reconstruct:bool = False):
         
         self.name = name
+        self.parent_module = parent_module
+
+        if _reconstruct:
+            self._attach_to_scene()
+            return
+
         self.groups = create_groups(rig_module_name=self.name)
 
-        self.parent_input = transform(name=f"{self.name}_{parent_module}_input")
-        self.parentGuide_input = transform(name=f"{self.name}_{parent_module}Guide_input")
+        self.parent_module_input = transform(name=f"{self.name}_{parent_module}_input")
+        self.parent_moduleGuide_input = transform(name=f"{self.name}_{parent_module}Guide_input")
 
         self.bind_jnts = bind_jnts
 
@@ -128,7 +134,13 @@ class SpineModule:
         self.mid_guide = create_guide(name=f"{self.name}_mid_guide", position=mid_guide_pos, color=guide_color)
         self.chest_guide = create_guide(name=f"{self.name}_chest_guide", position=chest_guide_pos, color=guide_color)
 
-        settings_guide = create_guide(name=f"{self.name}_settings_guide", position=settings_guide_pos, color=guide_color)
+        self.settings_guide = create_guide(name=f"{self.name}_settings_guide", position=settings_guide_pos, color=guide_color)
+
+        self._com_guide_mobj = self.com_guide.node.__apimobject__()
+        self._hip_guide_mobj = self.hip_guide.node.__apimobject__()
+        self._mid_guide_mobj = self.mid_guide.node.__apimobject__()
+        self._chest_guide_mobj = self.chest_guide.node.__apimobject__()
+        self._settings_guide_mobj = self.chest_guide.node.__apimobject__()
 
         com_ctrl = control.create(ctrl_type="box", name=f"{self.name}_com_ctrl", degree=1, size=[4, 1.5, 3], color=com_color)
 
@@ -183,11 +195,11 @@ class SpineModule:
 
         mid_IK_pom = multMatrix(name=f"{self.name}_mid_IK_pom")
         pm.connectAttr(self.mid_guide_outWM.outputMatrix, mid_IK_pom.matrixIn[0])
-        pm.connectAttr(self.parentGuide_input.worldInverseMatrix[0], mid_IK_pom.matrixIn[1])
+        pm.connectAttr(self.parent_moduleGuide_input.worldInverseMatrix[0], mid_IK_pom.matrixIn[1])
 
         mid_IK_baseWM = multMatrix(name=f"{self.name}_mid_IK_baseWM")
         pm.connectAttr(mid_IK_pom.matrixSum, mid_IK_baseWM.matrixIn[0])
-        pm.connectAttr(self.parent_input.worldMatrix[0], mid_IK_baseWM.matrixIn[1])
+        pm.connectAttr(self.parent_module_input.worldMatrix[0], mid_IK_baseWM.matrixIn[1])
 
         self.chest_guide_outWM = blendMatrix(name=f"{self.name}_self.chest_guide_outWM")
         pm.connectAttr(self.mid_guide.worldMatrix[0], self.chest_guide_outWM.inputMatrix)
@@ -199,8 +211,8 @@ class SpineModule:
             "com_hierarchy": {
                 "name": "com",
                 "guide": self.com_guide.worldMatrix[0],
-                "parent": self.parent_input.offsetParentMatrix,
-                "parentGuide": self.parentGuide_input.worldInverseMatrix[0]
+                "parent": self.parent_module_input.offsetParentMatrix,
+                "parentGuide": self.parent_moduleGuide_input.worldInverseMatrix[0]
             },
             "hip_FK_hierarchy": {
                 "name": "hip_FK",
@@ -242,7 +254,7 @@ class SpineModule:
 
             all_hierarchies[item["name"]] = main_hierarchy
 
-        settings_ctrl_hierarchy = hierarchy_prep(module_name=self.name, name="settings", guide=settings_guide.worldMatrix[0], 
+        settings_ctrl_hierarchy = hierarchy_prep(module_name=self.name, name="settings", guide=self.settings_guide.worldMatrix[0], 
                                                        parent=com_ctrl.worldMatrix[0], parentGuide=self.com_guide.worldInverseMatrix[0])
         
         pm.connectAttr(settings_ctrl_hierarchy["wm"].matrixSum, self.settings_ctrl.offsetParentMatrix)
@@ -391,9 +403,9 @@ class SpineModule:
             pm.parent(jnt.node, ribbon_joints_grp.node)
 
         order = {
-            "inputs": [self.parent_input, self.parentGuide_input],
+            "inputs": [self.parent_module_input, self.parent_moduleGuide_input],
             "controls": [com_ctrl, hip_IK_ctrl, chest_IK_ctrl, mid_IK_ctrl, self.settings_ctrl, hip_FK_ctrl, mid_FK_ctrl, chest_FK_ctrl, hip_tangent_ctrl, chest_tangent_ctrl, mid_start_ctrl, mid_end_ctrl],
-            "guides": [self.com_guide, self.hip_guide, self.chest_guide, self.mid_guide, settings_guide],
+            "guides": [self.com_guide, self.hip_guide, self.chest_guide, self.mid_guide, self.settings_guide],
             "joints": [ribbon_joints_grp],
             "rigNodes": [ribbon_pin_grp, hip_tangent_offset, chest_tangent_offset, ribbon, upper_bezier_curve, middle_bezier_curve, down_bezier_curve],
             "outputs": [self.hip_output, self.hipGuide_output, self.chest_output, self.chestGuide_output, com_output, mid_output]
@@ -415,6 +427,66 @@ class SpineModule:
 
         for IK_c in [hip_IK_ctrl, mid_IK_ctrl, chest_IK_ctrl]:
             pm.connectAttr(self.settings_ctrl.node.use_IK, IK_c.visibility)
+
+        self._write_metadata()
+
+
+    def _write_metadata(self):
+        """writes reconstruction-parameters in SETUP node"""
+        root_node = self.groups["SETUP"].node
+        meta = {
+            "moduleType": "ClavicleModule",
+            "name": self.name,
+            "bind_jnts": str(self.bind_jnts),
+            "parent_module": self.parent_module
+        }
+        for k, v in meta.items():
+            if not root_node.hasAttribute(k):
+                root_node.addAttr(k, dataType="string", keyable=False)
+            root_node.attr(k).set(str(v))
+
+
+    def _attach_to_scene(self):
+        """description"""
+        self.groups = {
+            "SETUP":    pm.PyNode(f"{self.name}_SETUP"),
+            "inputs":   pm.PyNode(f"{self.name}_inputs"),
+            "guides":   pm.PyNode(f"{self.name}_guides"),
+            "controls": pm.PyNode(f"{self.name}_controls"),
+            "helpers":  pm.PyNode(f"{self.name}_helpers"),
+            "joints":   pm.PyNode(f"{self.name}_joints"),
+            "rigNodes": pm.PyNode(f"{self.name}_rigNodes"),
+            "outputs":  pm.PyNode(f"{self.name}_outputs"),
+        }
+
+        # guides
+        self.com_guide = pm.PyNode(f"{self.name}_com_guide")
+        self.hip_guide = pm.PyNode(f"{self.name}_hip_guide")
+        self.mid_guide = pm.PyNode(f"{self.name}_mid_guide")
+        self.chest_guide = pm.PyNode(f"{self.name}_chest_guide")
+        self.settings_guide = pm.PyNode(f"{self.name}_settings_guide")
+
+        # get MObject handles again because old ones are no longer valid
+        self._com_guide_mobj = self.com_guide.__apimobject__()
+        self._hip_guide_mobj = self.hip_guide.__apimobject__()
+        self._mid_guide_mobj = self.mid_guide.__apimobject__()
+        self._chest_guide_mobj = self.chest_guide.__apimobject__()
+        self._settings_guide_mobj = self.settings_guide.__apimobject__()
+
+        # inputs
+        self.parent_module_input = pm.PyNode(f"{self.name}_{self.parent_module}_input")
+        self.parent_moduleGuide_input = pm.PyNode(f"{self.name}_{self.parent_module}Guide_input")
+
+        # controls
+        self.settings_ctrl = pm.PyNode(f"{self.name}_settings_ctrl")
+
+        # outputs
+        self.hip_output = pm.PyNode(f"{self.name}_hip_output")
+        self.hipGuide_output = pm.PyNode(f"{self.name}_hipGuide_output")
+        self.chest_output = pm.PyNode(f"{self.name}_chest_output")
+        self.chestGuide_output = pm.PyNode(f"{self.name}_chestGuide_output")
+
+        registry.register(self.name, self)
 
     def get_guide_positions(self) -> dict:
         """Get current guide positions"""
@@ -442,11 +514,11 @@ class SpineModule:
     
     @property
     def out_parent_input(self):
-        return self.parent_input
+        return self.parent_module_input
 
     @property
     def out_parentGuide_input(self):
-        return self.parentGuide_input
+        return self.parent_moduleGuide_input
     
     @property
     def out_chest_output(self):

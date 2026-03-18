@@ -41,6 +41,7 @@ class RootModule:
     def __init__(self, name:str, ctrl_size:int, _reconstruct:bool = False):
         
         self.name = name
+        self.ctrl_size = ctrl_size
 
         if _reconstruct:
             self._attach_to_scene()
@@ -58,9 +59,9 @@ class RootModule:
 
         self._root_guide_mobj = self.root_guide.node.__apimobject__()
 
-        root_god_ctrl = control.create_circle_ctrl(name=f"{self.name}_god_ctrl", ctrl_size=ctrl_size, normal=(0, 1, 0), color=god_color)
-        root_demigod_ctrl = control.create_circle_ctrl(name=f"{self.name}_demigod_ctrl", ctrl_size=ctrl_size-1, normal=(0, 1, 0), color=demigod_color)
-        root_main_ctrl = control.create_circle_ctrl(name=f"{self.name}_main_ctrl", ctrl_size=ctrl_size-2, normal=(0, 1, 0), color=main_color)
+        root_god_ctrl = control.create_circle_ctrl(name=f"{self.name}_god_ctrl", ctrl_size=self.ctrl_size, normal=(0, 1, 0), color=god_color)
+        root_demigod_ctrl = control.create_circle_ctrl(name=f"{self.name}_demigod_ctrl", ctrl_size=self.ctrl_size-1, normal=(0, 1, 0), color=demigod_color)
+        root_main_ctrl = control.create_circle_ctrl(name=f"{self.name}_main_ctrl", ctrl_size=self.ctrl_size-2, normal=(0, 1, 0), color=main_color)
 
         pm.connectAttr(self.root_guide.worldMatrix[0], root_god_ctrl.offsetParentMatrix)
         pm.connectAttr(root_god_ctrl.worldMatrix[0], root_demigod_ctrl.offsetParentMatrix)
@@ -91,7 +92,8 @@ class RootModule:
         """writes reconstruction-parameters in SETUP node"""
         root_node = self.groups["SETUP"].node
         meta = {
-            "moduleType": "RootModule"
+            "moduleType": "RootModule",
+            "ctrl_size": self.ctrl_size
         }
         if not root_node.hasAttribute("moduleType"):
             root_node.addAttr("moduleType", dataType="string", keyable=False)

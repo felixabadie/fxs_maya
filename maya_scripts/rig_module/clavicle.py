@@ -311,7 +311,7 @@ class ClavicleModule:
         self.end_output        = pm.PyNode(f"{self.name}_end_output")
         self.endGuide_output   = pm.PyNode(f"{self.name}_endGuide_output")
 
-        #get MObject handles again because old ones are no longer valid
+        # get MObject handles again because old ones are no longer valid
         self._start_guide_mobj = self.start_guide.__apimobject__()
         self._end_guide_mobj   = self.end_guide.__apimobject__()
 

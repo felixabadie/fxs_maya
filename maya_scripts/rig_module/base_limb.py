@@ -1226,7 +1226,7 @@ class LimbModule:
         self.elbowLock_guide = pm.PyNode(f"{self.name}_elbowLock_guide")
         self.settings_guide  = pm.PyNode(f"{self.name}_settings_guide")
 
-        # MObject Handles neu holen — alte sind nach Scene-Neuöffnung ungültig
+        # get MObject handles again because old ones are no longer valid
         self._upper_guide_mobj     = self.upper_guide.__apimobject__()
         self._lower_guide_mobj     = self.lower_guide.__apimobject__()
         self._hand_guide_mobj      = self.hand_guide.__apimobject__()
