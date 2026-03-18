@@ -98,6 +98,8 @@ def get_all():
 def remove_module(name):
     if name in _module_registry:
         del _module_registry[name]
+    else:
+        print("Name not in registry (might not have been rebuilt)")
 
 def remove_all():
     pm.warning("registry empty")
