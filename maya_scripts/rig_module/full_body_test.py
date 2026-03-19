@@ -75,13 +75,13 @@ class BipedManager:
 
     
         root = RootModule(
-            name=root_name,
+            module_name=root_name,
             ctrl_size=10
         )
 
         spine = SpineModule(
             parent_module=root_name,
-            name=spine_name,
+            module_name=spine_name,
             bind_jnts=bind_jnts_dict["spine_bind_jnts"],
             com_guide_pos=(0, 14, 0), 
             hip_guide_pos=(0, 12, 0), 

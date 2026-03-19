@@ -500,7 +500,17 @@ class SpineModule:
     def del_module(self):
         """Remove registry entry and delete self"""
         registry.remove_module(self.name)
-        pm.delete(f"{self.name}_mod")
+
+        connected_nodes = pm.ls(f"{self.name}*")
+        print(connected_nodes)
+        for node in connected_nodes:
+            try:
+                pm.delete(node)
+            except Exception as e:
+                print(f"Cannot delete '{node}' node, Exception: {e}")
+                pass
+
+        print(f"DELETED {self.name}")
 
     @property
     def rig_module(self):
