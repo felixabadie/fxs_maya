@@ -1612,7 +1612,7 @@ class LegModule:
         )
         return module
     
-    
+
     def get_guide_positions(self) -> dict:
         """Get current guide positions"""
         
@@ -1630,16 +1630,16 @@ class LegModule:
         
         return {
             "upper_guide": pm.xform(upper_node, q=True, ws=True, t=True),
-            "lower_guide": pm.xform(lower_node,   q=True, ws=True, t=True),
-            "ankle_guide": pm.xform(ankle_node,   q=True, ws=True, t=True),
+            "lower_guide": pm.xform(lower_node,   q=True, ws=False, t=True),
+            "ankle_guide": pm.xform(ankle_node,   q=True, ws=False, t=True),
             "kneeLock_guide": pm.xform(kneeLock_node,   q=True, ws=True, t=True),
             "settings_guide": pm.xform(settings_node,   q=True, ws=True, t=True),
             "foot_guide": pm.xform(foot_node,   q=True, ws=True, t=True),
-            "foot_left_bank_guide": pm.xform(foot_left_bank_node,   q=True, ws=True, t=True),
-            "foot_right_bank_guide": pm.xform(foot_right_bank_node,   q=True, ws=True, t=True),
-            "foot_heel_guide": pm.xform(foot_heel_node,   q=True, ws=True, t=True),
-            "foot_end_guide_pos": pm.xform(foot_end_node,   q=True, ws=True, t=True),
-            "foot_ball_guide": pm.xform(foot_ball_node,   q=True, ws=True, t=True),
+            "foot_left_bank_guide": pm.xform(foot_left_bank_node,   q=True, ws=False, t=True),
+            "foot_right_bank_guide": pm.xform(foot_right_bank_node,   q=True, ws=False, t=True),
+            "foot_heel_guide": pm.xform(foot_heel_node,   q=True, ws=False, t=True),
+            "foot_end_guide_pos": pm.xform(foot_end_node,   q=True, ws=False, t=True),
+            "foot_ball_guide": pm.xform(foot_ball_node,   q=True, ws=False, t=True),
         }
 
 
