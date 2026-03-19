@@ -1364,6 +1364,7 @@ class LimbModule:
         )
         return module
     
+
     def get_guide_positions(self) -> dict:
         """Get current guide positions"""
         
@@ -1375,16 +1376,18 @@ class LimbModule:
 
         return {
             "upper_guide": pm.xform(upper_node, q=True, ws=True, t=True),
-            "lower_guide": pm.xform(lower_node, q=True, ws=True, t=True),
+            "lower_guide": pm.xform(lower_node, q=True, ws=False, t=True),
             "hand_guide": pm.xform(hand_node, q=True, ws=True, t=True),
             "elbowLock_guide": pm.xform(elbowLock_node, q=True, ws=True, t=True),
             "settings_guide": pm.xform(settings_node, q=True, ws=True, t=True)
         }
 
+
     def del_module(self):
         """Remove registry entry and delete self"""
         registry.remove_module(self.name)
         pm.delete(f"{self.name}_mod")
+
 
     @property
     def rig_module(self):

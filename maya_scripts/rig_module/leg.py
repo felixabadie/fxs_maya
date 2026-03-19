@@ -1612,6 +1612,7 @@ class LegModule:
         )
         return module
     
+    
     def get_guide_positions(self) -> dict:
         """Get current guide positions"""
         
@@ -1641,10 +1642,12 @@ class LegModule:
             "foot_ball_guide": pm.xform(foot_ball_node,   q=True, ws=True, t=True),
         }
 
+
     def del_module(self):
         """Remove registry entry and delete self"""
         registry.remove_module(self.name)
         pm.delete(f"{self.name}_mod")
+
 
     @property
     def rig_module(self):
