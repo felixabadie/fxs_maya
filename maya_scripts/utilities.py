@@ -641,3 +641,9 @@ def read_json_data(path):
     with open(path, "r") as f:
         data = json.load(f)
     return data
+
+def get_node(obj):
+    node = getattr(obj, "node", obj)
+    if callable(node):
+        return obj
+    return node

@@ -21,6 +21,7 @@ from maya_scripts.utilities import (
     mirror_position,
     get_module_from_group,
     get_mirror_output,
+    get_node,
     TextFieldHelper,
     CompoundFieldSlot
 )
@@ -414,20 +415,20 @@ class LimbModule:
         upper_FK_ctrl_mainSpacePOM = create_pom(
             module_name=self.name, name="upper_FK_ctrl_mainSpacePOM", source_matrix = self.upper_FK_guide_outWM.outputMatrix, parentGuide_input = self.mainGuide_input.worldInverseMatrix[0])
 
-        hand_IK_ctrl_mainSpaceEnable = equal(name=f"{self.name}_hand_IK_ctrl_{main_module}SpaceEnable")
-        pm.connectAttr(self.settings_ctrl.node.space, hand_IK_ctrl_mainSpaceEnable.input1)
-        hand_IK_ctrl_mainSpaceEnable.input2.set(1)
+        self.hand_IK_ctrl_mainSpaceEnable = equal(name=f"{self.name}_hand_IK_ctrl_{main_module}SpaceEnable")
+        pm.connectAttr(self.settings_ctrl.node.space, self.hand_IK_ctrl_mainSpaceEnable.input1)
+        self.hand_IK_ctrl_mainSpaceEnable.input2.set(1)
 
-        hand_IK_ctrl_worldSpaceEnable = equal(name=f"{self.name}_hand_IK_ctrl_worldSpaceEnable")
-        pm.connectAttr(self.settings_ctrl.node.space, hand_IK_ctrl_worldSpaceEnable.input1)
-        hand_IK_ctrl_worldSpaceEnable.input2.set(2)
+        self.hand_IK_ctrl_worldSpaceEnable = equal(name=f"{self.name}_hand_IK_ctrl_worldSpaceEnable")
+        pm.connectAttr(self.settings_ctrl.node.space, self.hand_IK_ctrl_worldSpaceEnable.input1)
+        self.hand_IK_ctrl_worldSpaceEnable.input2.set(2)
 
         self.upper_FK_ctrl_rotWM = parentMatrix(name=f"{self.name}_upper_FK_ctrl_rotWM")
         pm.connectAttr(upper_WM_test.matrixSum, self.upper_FK_ctrl_rotWM.inputMatrix)
-        pm.connectAttr(hand_IK_ctrl_mainSpaceEnable.output, self.upper_FK_ctrl_rotWM.target[0].enableTarget)
+        pm.connectAttr(self.hand_IK_ctrl_mainSpaceEnable.output, self.upper_FK_ctrl_rotWM.target[0].enableTarget)
         pm.connectAttr(self.main_input.offsetParentMatrix, self.upper_FK_ctrl_rotWM.target[0].targetMatrix)
         pm.connectAttr(upper_FK_ctrl_mainSpacePOM.matrixSum, self.upper_FK_ctrl_rotWM.target[0].offsetMatrix)
-        pm.connectAttr(hand_IK_ctrl_worldSpaceEnable.output, self.upper_FK_ctrl_rotWM.target[1].enableTarget)
+        pm.connectAttr(self.hand_IK_ctrl_worldSpaceEnable.output, self.upper_FK_ctrl_rotWM.target[1].enableTarget)
         pm.connectAttr(self.upper_FK_guide_outWM.outputMatrix, self.upper_FK_ctrl_rotWM.target[1].offsetMatrix)
 
         upper_FK_ctrl_WM = blendMatrix(name=f"{self.name}_upper_FK_ctrl_WM")
@@ -515,10 +516,10 @@ class LimbModule:
         
         self.hand_IK_ctrl_WM = parentMatrix(f"{self.name}_hand_IK_ctrl_WM")
         pm.connectAttr(hand_IK_ctrl_parent_moduleSpaceWM.matrixSum, self.hand_IK_ctrl_WM.inputMatrix)
-        pm.connectAttr(hand_IK_ctrl_mainSpaceEnable.output, self.hand_IK_ctrl_WM.target[0].enableTarget)
+        pm.connectAttr(self.hand_IK_ctrl_mainSpaceEnable.output, self.hand_IK_ctrl_WM.target[0].enableTarget)
         pm.connectAttr(self.main_input.offsetParentMatrix, self.hand_IK_ctrl_WM.target[0].targetMatrix)
         pm.connectAttr(hand_IK_ctrl_mainSpacePOM.matrixSum, self.hand_IK_ctrl_WM.target[0].offsetMatrix)
-        pm.connectAttr(hand_IK_ctrl_worldSpaceEnable.output, self.hand_IK_ctrl_WM.target[1].enableTarget)
+        pm.connectAttr(self.hand_IK_ctrl_worldSpaceEnable.output, self.hand_IK_ctrl_WM.target[1].enableTarget)
         pm.connectAttr(self.hand_FK_guide_outWM.outputMatrix, self.hand_IK_ctrl_WM.target[1].offsetMatrix)
 
 
@@ -537,10 +538,10 @@ class LimbModule:
 
         self.elbow_IK_baseWM = parentMatrix(name=f"{self.name}_elbow_IK_baseWM")
         pm.connectAttr(elbow_IK_clavicleSpaceWM.matrixSum, self.elbow_IK_baseWM.inputMatrix)
-        pm.connectAttr(hand_IK_ctrl_mainSpaceEnable.output, self.elbow_IK_baseWM.target[0].enableTarget)
+        pm.connectAttr(self.hand_IK_ctrl_mainSpaceEnable.output, self.elbow_IK_baseWM.target[0].enableTarget)
         pm.connectAttr(self.main_input.offsetParentMatrix, self.elbow_IK_baseWM.target[0].targetMatrix)
         pm.connectAttr(elbow_IK_mainSpacePOM.matrixSum, self.elbow_IK_baseWM.target[0].offsetMatrix)
-        pm.connectAttr(hand_IK_ctrl_worldSpaceEnable.output, self.elbow_IK_baseWM.target[1].enableTarget)
+        pm.connectAttr(self.hand_IK_ctrl_worldSpaceEnable.output, self.elbow_IK_baseWM.target[1].enableTarget)
         pm.connectAttr(self.orientPlane_guide.outputMatrix, self.elbow_IK_baseWM.target[1].offsetMatrix)
 
         elbow_IK_pos_WM = blendMatrix(name=f"{self.name}_elbow_IK_pos_WM")
@@ -566,13 +567,13 @@ class LimbModule:
         pm.connectAttr(elbowLock_IK_ctrl_mainSpacePOM.matrixSum, elbowLock_IK_ctrl_mainSpaceWM.matrixIn[0])
         pm.connectAttr(self.main_input.worldMatrix[0], elbowLock_IK_ctrl_mainSpaceWM.matrixIn[1])
 
-        elbowLock_IK_ctrl_worldSpaceEnable = equal(name=f"{self.name}_elbowLock_IK_ctrl_worldSpaceEnable")
-        pm.connectAttr(self.elbowLock_IK_ctrl.node.space, elbowLock_IK_ctrl_worldSpaceEnable.input1)
-        elbowLock_IK_ctrl_worldSpaceEnable.input2.set(1)
+        self.elbowLock_IK_ctrl_worldSpaceEnable = equal(name=f"{self.name}_elbowLock_IK_ctrl_worldSpaceEnable")
+        pm.connectAttr(self.elbowLock_IK_ctrl.node.space, self.elbowLock_IK_ctrl_worldSpaceEnable.input1)
+        self.elbowLock_IK_ctrl_worldSpaceEnable.input2.set(1)
 
         self.elbowLock_IK_ctrl_WM = parentMatrix(name=f"{self.name}_elbowLock_IK_ctrl_WM")
         pm.connectAttr(elbowLock_IK_ctrl_mainSpaceWM.matrixSum, self.elbowLock_IK_ctrl_WM.inputMatrix)
-        pm.connectAttr(elbowLock_IK_ctrl_worldSpaceEnable.output, self.elbowLock_IK_ctrl_WM.target[0].enableTarget)
+        pm.connectAttr(self.elbowLock_IK_ctrl_worldSpaceEnable.output, self.elbowLock_IK_ctrl_WM.target[0].enableTarget)
         pm.connectAttr(self.elbowLock_guide.worldMatrix[0], self.elbowLock_IK_ctrl_WM.target[0].offsetMatrix)
 
         pm.connectAttr(self.elbowLock_IK_ctrl_WM.outputMatrix, self.elbowLock_IK_ctrl.offsetParentMatrix)
@@ -1184,6 +1185,7 @@ class LimbModule:
 
         self._write_meta_data()
 
+
     def _write_meta_data(self):
         """Write reconstruction parameters on SETUP node"""
         root_node = self.groups["SETUP"].node
@@ -1257,7 +1259,7 @@ class LimbModule:
         self.handGuide_output = pm.PyNode(f"{self.name}_handGuide_output")
 
         # Listen aus Node-Attributen lesen
-        root_node = self.groups["SETUP"].node
+        root_node = get_node(self.groups["SETUP"])
         self.input_list = self._reconstruct_input_list or json.loads(root_node.attr("input_list").get())
         self.elbowLock_list = self._reconstruct_elbowLock_list or json.loads(root_node.attr("elbowLock_list").get())
 
@@ -1272,23 +1274,47 @@ class LimbModule:
         parent_input = transform(name=f"{self.name}_{parent_name}_input")
         parentGuide_input = transform(name=f"{self.name}_{parent_name}Guide_input")
 
-        pm.parent(parent_input.node, self.groups["inputs"].node)
-        pm.parent(parentGuide_input.node, self.groups["inputs"].node)
+        pm.parent(parent_input.node, get_node(self.groups["inputs"]))
+        pm.parent(parentGuide_input.node, get_node(self.groups["inputs"]))
 
         self.input_list.append(parent_name)
         self.elbowLock_list.append(parent_name)
 
         target_index = len(self.input_list) - 1
-
         elbowTarget_index = len(self.elbowLock_list) - 1
 
         enumNameStr = ":".join(self.input_list)
-        self.settings_ctrl.node.deleteAttr("space")
-        self.settings_ctrl.node.addAttr(attr="space", niceName="Space", attributeType="enum", enumName=enumNameStr, defaultValue=0, hidden=False, keyable=True)
+        get_node(self.settings_ctrl).deleteAttr("space")
+        get_node(self.settings_ctrl).addAttr(attr="space", niceName="Space", attributeType="enum", enumName=enumNameStr, defaultValue=0, hidden=False, keyable=True)
 
         elbow_enumNameStr = ":".join(self.elbowLock_list)
-        self.elbowLock_IK_ctrl.node.deleteAttr("space")
-        self.elbowLock_IK_ctrl.node.addAttr(attr="space", niceName="Space", attributeType="enum", enumName=elbow_enumNameStr, defaultValue=0, hidden=False, keyable=True)
+        get_node(self.elbowLock_IK_ctrl).deleteAttr("space")
+        get_node(self.elbowLock_IK_ctrl).addAttr(attr="space", niceName="Space", attributeType="enum", enumName=elbow_enumNameStr, defaultValue=0, hidden=False, keyable=True)
+
+        worldspace_index = self.input_list.index("worldSpace")
+        mainspace_index  = self.input_list.index(self.main_module)
+
+        hand_world_enable = pm.PyNode(f"{self.name}_hand_IK_ctrl_worldSpaceEnable")
+        pm.connectAttr(get_node(self.settings_ctrl).space, hand_world_enable.input1, force=True)
+        hand_world_enable.input2.set(worldspace_index)
+
+        hand_main_enable = pm.PyNode(f"{self.name}_hand_IK_ctrl_{self.main_module}SpaceEnable")
+        pm.connectAttr(get_node(self.settings_ctrl).space, hand_main_enable.input1, force=True)
+        hand_main_enable.input2.set(mainspace_index)
+
+        elbow_world_enable = pm.PyNode(f"{self.name}_elbowLock_IK_ctrl_worldSpaceEnable")
+        pm.connectAttr(get_node(self.elbowLock_IK_ctrl).space, elbow_world_enable.input1, force=True)
+        elbow_world_enable.input2.set(worldspace_index)
+
+        for i in range(target_index):
+            space_enable_name = f"{self.name}_hand_IK_ctrl_{self.input_list[i]}SpaceEnable"
+            if pm.objExists(space_enable_name):
+                pm.connectAttr(get_node(self.settings_ctrl).space, f"{space_enable_name}.input1", force=True)
+
+        for i in range(elbowTarget_index):
+            elbow_enable_name = f"{self.name}_elbowLock_IK_ctrl_{self.elbowLock_list[i]}Enable"
+            if pm.objExists(elbow_enable_name):
+                pm.connectAttr(get_node(self.elbowLock_IK_ctrl).space, f"{elbow_enable_name}.input1", force=True)
 
         upper_FK_ctrl_parentSpacePOM = create_pom(
             module_name=self.name, name="upper_FK_ctrl_parentSpacePOM", source_matrix = self.upper_FK_guide_outWM.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0])
@@ -1301,7 +1327,7 @@ class LimbModule:
         )
 
         hand_IK_ctrl_parentSpaceEnable = equal(name=f"{self.name}_hand_IK_ctrl_{parent_name}SpaceEnable")
-        pm.connectAttr(self.settings_ctrl.node.space, hand_IK_ctrl_parentSpaceEnable.input1)
+        pm.connectAttr(get_node(self.settings_ctrl).space, hand_IK_ctrl_parentSpaceEnable.input1)
         hand_IK_ctrl_parentSpaceEnable.input2.set(target_index)
 
         #upper fk ctrl space switch
@@ -1322,8 +1348,8 @@ class LimbModule:
         elbowLock_IK_ctrl_parentSpacePOM = create_pom(
             module_name=self.name, name="elbowLock_IK_ctrl_parentSpacePOM", source_matrix = self.elbowLock_guide.worldMatrix[0], parentGuide_input = parentGuide_input.worldInverseMatrix[0])
 
-        elbowLock_IK_ctrl_parentSpaceEnable = equal(name=f"{self.name}_elbowLock_IK_ctrl_{parent_name}Enable")
-        pm.connectAttr(self.elbowLock_IK_ctrl.node.space, elbowLock_IK_ctrl_parentSpaceEnable.input1)
+        elbowLock_IK_ctrl_parentSpaceEnable = equal(name=f"{self.name}_elbowLock_IK_ctrl_{parent_name}SpaceEnable")
+        pm.connectAttr(get_node(self.elbowLock_IK_ctrl).space, elbowLock_IK_ctrl_parentSpaceEnable.input1)
         elbowLock_IK_ctrl_parentSpaceEnable.input2.set(elbowTarget_index)
 
         #elbowLock space switch
@@ -1331,7 +1357,7 @@ class LimbModule:
         pm.connectAttr(parent_input.offsetParentMatrix, self.elbowLock_IK_ctrl_WM.target[elbowTarget_index].targetMatrix)
         pm.connectAttr(elbowLock_IK_ctrl_parentSpacePOM.matrixSum, self.elbowLock_IK_ctrl_WM.target[elbowTarget_index].offsetMatrix)
 
-        root_node = self.groups["SETUP"].node
+        root_node = get_node(self.groups["SETUP"])
         root_node.attr("input_list").set(json.dumps(self.input_list))
         root_node.attr("elbowLock_list").set(json.dumps(self.elbowLock_list))
 
