@@ -22,6 +22,7 @@ from maya_scripts.utilities import (
     mirror_position,
     get_module_from_group,
     get_mirror_output,
+    get_node,
     TextFieldHelper,
     CompoundFieldSlot
 )
@@ -1516,69 +1517,102 @@ class LegModule:
     def addParent(self, parent_name="parent"):
         """Adds a new parent internally by creating attributes, connections and inputs.
         Manual input connection is requiered."""
-        parent_name = str(parent_name)  # Sicherheit
+        try:
+            parent_name = str(parent_name)  # Sicherheit
     
-        parent_input = transform(name=f"{self.name}_{parent_name}_input")
-        parentGuide_input = transform(name=f"{self.name}_{parent_name}Guide_input")
+            parent_input = transform(name=f"{self.name}_{parent_name}_input")
+            parentGuide_input = transform(name=f"{self.name}_{parent_name}Guide_input")
 
-        pm.parent(parent_input.node, self.groups["inputs"].node)
-        pm.parent(parentGuide_input.node, self.groups["inputs"].node)
+            pm.parent(parent_input.node, get_node(self.groups["inputs"]))
+            pm.parent(parentGuide_input.node, get_node(self.groups["inputs"]))
 
-        self.input_list.append(parent_name)
-        self.kneeLock_list.append(parent_name)
+            self.input_list.append(parent_name)
+            self.kneeLock_list.append(parent_name)
 
-        target_index = len(self.input_list) - 1
+            target_index = len(self.input_list) - 1
+            kneeTarget_index = len(self.kneeLock_list) - 1
 
-        kneeTarget_index = len(self.kneeLock_list) - 1
+            enumNameStr = ":".join(self.input_list)
+            get_node(self.settings_ctrl).deleteAttr("space")
+            get_node(self.settings_ctrl).addAttr(attr="space", niceName="Space", attributeType="enum", enumName=enumNameStr, defaultValue=0, hidden=False, keyable=True)
 
-        enumNameStr = ":".join(self.input_list)
-        self.settings_ctrl.node.deleteAttr("space")
-        self.settings_ctrl.node.addAttr(attr="space", niceName="Space", attributeType="enum", enumName=enumNameStr, defaultValue=0, hidden=False, keyable=True)
+            knee_enumNameStr = ":".join(self.kneeLock_list)
+            get_node(self.kneeLock_IK_ctrl).deleteAttr("space")
+            get_node(self.kneeLock_IK_ctrl).addAttr(attr="space", niceName="Space", attributeType="enum", enumName=knee_enumNameStr, defaultValue=0, hidden=False, keyable=True)
 
-        knee_enumNameStr = ":".join(self.kneeLock_list)
-        self.kneeLock_IK_ctrl.node.deleteAttr("space")
-        self.kneeLock_IK_ctrl.node.addAttr(attr="space", niceName="Space", attributeType="enum", enumName=knee_enumNameStr, defaultValue=0, hidden=False, keyable=True)
+            worldspace_index = self.input_list.index("worldSpace")
+            mainspace_index  = self.input_list.index(self.main_module)
 
-        upper_FK_ctrl_parentSpacePOM = create_pom(
-            module_name=self.name, name="upper_FK_ctrl_parentSpacePOM", source_matrix = self.upper_FK_guide_outWM.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0])
+            foot_world_enable = pm.PyNode(f"{self.name}_foot_IK_ctrl_worldSpaceEnable")
+            pm.connectAttr(get_node(self.settings_ctrl).space, foot_world_enable.input1, force=True)
+            foot_world_enable.input2.set(worldspace_index)
 
-        ankle_IK_ctrl_parentSpacePOM = create_pom(
-            module_name=self.name, name="ankle_IK_ctrl_parentSpacePOM", source_matrix = self.ankle_FK_guide_outWM.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0])
+            foot_main_enable = pm.PyNode(f"{self.name}_foot_IK_ctrl_{self.main_module}SpaceEnable")
+            pm.connectAttr(get_node(self.settings_ctrl).space, foot_main_enable.input1, force=True)
+            foot_main_enable.input2.set(mainspace_index)
 
-        knee_IK_ctrl_parentSpacePOM = create_pom(
-            module_name=self.name, name="knee_IK_ctrl_parentSpacePOM", source_matrix = self.orientPlane_guide.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0]
-        )
+            knee_world_enable = pm.PyNode(f"{self.name}_kneeLock_IK_ctrl_worldSpaceEnable")
+            pm.connectAttr(get_node(self.kneeLock_IK_ctrl).space, knee_world_enable.input1, force=True)
+            knee_world_enable.input2.set(worldspace_index)
 
-        ankle_IK_ctrl_parentSpaceEnable = equal(name=f"{self.name}_ankle_IK_ctrl_{parent_name}SpaceEnable")
-        pm.connectAttr(self.settings_ctrl.node.space, ankle_IK_ctrl_parentSpaceEnable.input1)
-        ankle_IK_ctrl_parentSpaceEnable.input2.set(target_index)
+            for i in range(target_index):
+                space_enable_name = f"{self.name}_foot_IK_ctrl_{self.input_list[i]}SpaceEnable"
+                if pm.objExists(space_enable_name):
+                    pm.connectAttr(get_node(self.settings_ctrl).space, f"{space_enable_name}.input1", force=True)
 
-        #upper fk ctrl space switch
-        pm.connectAttr(ankle_IK_ctrl_parentSpaceEnable.output, self.upper_FK_ctrl_rotWM.target[target_index].enableTarget)
-        pm.connectAttr(parent_input.offsetParentMatrix, self.upper_FK_ctrl_rotWM.target[target_index].targetMatrix)
-        pm.connectAttr(upper_FK_ctrl_parentSpacePOM.matrixSum, self.upper_FK_ctrl_rotWM.target[target_index].offsetMatrix)
+            for i in range(kneeTarget_index):
+                knee_enable_name = f"{self.name}_kneeLock_IK_ctrl_{self.kneeLock_list[i]}Enable"
+                if pm.objExists(knee_enable_name):
+                    pm.connectAttr(get_node(self.kneeLock_IK_ctrl).space, f"{knee_enable_name}.input1", force=True)
 
-        #ankle ik ctrl space switch
-        pm.connectAttr(ankle_IK_ctrl_parentSpaceEnable.output, self.ankle_IK_ctrl_WM.target[target_index].enableTarget)
-        pm.connectAttr(parent_input.offsetParentMatrix, self.ankle_IK_ctrl_WM.target[target_index].targetMatrix)
-        pm.connectAttr(ankle_IK_ctrl_parentSpacePOM.matrixSum, self.ankle_IK_ctrl_WM.target[target_index].offsetMatrix)
+            upper_FK_ctrl_parentSpacePOM = create_pom(
+                module_name=self.name, name="upper_FK_ctrl_parentSpacePOM", source_matrix = self.upper_FK_guide_outWM.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0])
 
-        #knee ik ctrl space switch
-        pm.connectAttr(ankle_IK_ctrl_parentSpaceEnable.output, self.knee_IK_baseWM.target[target_index].enableTarget)
-        pm.connectAttr(parent_input.offsetParentMatrix, self.knee_IK_baseWM.target[target_index].targetMatrix)
-        pm.connectAttr(knee_IK_ctrl_parentSpacePOM.matrixSum, self.knee_IK_baseWM.target[target_index].offsetMatrix)
+            ankle_IK_ctrl_parentSpacePOM = create_pom(
+                module_name=self.name, name="ankle_IK_ctrl_parentSpacePOM", source_matrix = self.ankle_FK_guide_outWM.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0])
 
-        kneeLock_IK_ctrl_parentSpacePOM = create_pom(
-            module_name=self.name, name="kneeLock_IK_ctrl_parentSpacePOM", source_matrix = self.kneeLock_guide.worldMatrix[0], parentGuide_input = parentGuide_input.worldInverseMatrix[0])
+            knee_IK_ctrl_parentSpacePOM = create_pom(
+                module_name=self.name, name="knee_IK_ctrl_parentSpacePOM", source_matrix = self.orientPlane_guide.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0]
+            )
 
-        kneeLock_IK_ctrl_parentSpaceEnable = equal(name=f"{self.name}_kneeLock_IK_ctrl_{parent_name}Enable")
-        pm.connectAttr(self.kneeLock_IK_ctrl.node.space, kneeLock_IK_ctrl_parentSpaceEnable.input1)
-        kneeLock_IK_ctrl_parentSpaceEnable.input2.set(kneeTarget_index)
+            ankle_IK_ctrl_parentSpaceEnable = equal(name=f"{self.name}_ankle_IK_ctrl_{parent_name}SpaceEnable")
+            pm.connectAttr(get_node(self.settings_ctrl).space, ankle_IK_ctrl_parentSpaceEnable.input1)
+            ankle_IK_ctrl_parentSpaceEnable.input2.set(target_index)
 
-        #kneeLock space switch
-        pm.connectAttr(kneeLock_IK_ctrl_parentSpaceEnable.output, self.kneeLock_IK_ctrl_WM.target[kneeTarget_index].enableTarget)
-        pm.connectAttr(parent_input.offsetParentMatrix, self.kneeLock_IK_ctrl_WM.target[kneeTarget_index].targetMatrix)
-        pm.connectAttr(kneeLock_IK_ctrl_parentSpacePOM.matrixSum, self.kneeLock_IK_ctrl_WM.target[kneeTarget_index].offsetMatrix)
+            #upper fk ctrl space switch
+            pm.connectAttr(ankle_IK_ctrl_parentSpaceEnable.output, self.upper_FK_ctrl_rotWM.target[target_index].enableTarget)
+            pm.connectAttr(parent_input.offsetParentMatrix, self.upper_FK_ctrl_rotWM.target[target_index].targetMatrix)
+            pm.connectAttr(upper_FK_ctrl_parentSpacePOM.matrixSum, self.upper_FK_ctrl_rotWM.target[target_index].offsetMatrix)
+
+            #ankle ik ctrl space switch
+            pm.connectAttr(ankle_IK_ctrl_parentSpaceEnable.output, self.foot_IK_ctrl_WM.target[target_index].enableTarget)
+            pm.connectAttr(parent_input.offsetParentMatrix, self.foot_IK_ctrl_WM.target[target_index].targetMatrix)
+            pm.connectAttr(ankle_IK_ctrl_parentSpacePOM.matrixSum, self.foot_IK_ctrl_WM.target[target_index].offsetMatrix)
+
+            #knee ik ctrl space switch
+            pm.connectAttr(ankle_IK_ctrl_parentSpaceEnable.output, self.knee_IK_baseWM.target[target_index].enableTarget)
+            pm.connectAttr(parent_input.offsetParentMatrix, self.knee_IK_baseWM.target[target_index].targetMatrix)
+            pm.connectAttr(knee_IK_ctrl_parentSpacePOM.matrixSum, self.knee_IK_baseWM.target[target_index].offsetMatrix)
+
+            kneeLock_IK_ctrl_parentSpacePOM = create_pom(
+                module_name=self.name, name="kneeLock_IK_ctrl_parentSpacePOM", source_matrix = self.kneeLock_guide.worldMatrix[0], parentGuide_input = parentGuide_input.worldInverseMatrix[0])
+
+            kneeLock_IK_ctrl_parentSpaceEnable = equal(name=f"{self.name}_kneeLock_IK_ctrl_{parent_name}Enable")
+            pm.connectAttr(get_node(self.kneeLock_IK_ctrl).space, kneeLock_IK_ctrl_parentSpaceEnable.input1)
+            kneeLock_IK_ctrl_parentSpaceEnable.input2.set(kneeTarget_index)
+
+            #kneeLock space switch
+            pm.connectAttr(kneeLock_IK_ctrl_parentSpaceEnable.output, self.kneeLock_IK_ctrl_WM.target[kneeTarget_index].enableTarget)
+            pm.connectAttr(parent_input.offsetParentMatrix, self.kneeLock_IK_ctrl_WM.target[kneeTarget_index].targetMatrix)
+            pm.connectAttr(kneeLock_IK_ctrl_parentSpacePOM.matrixSum, self.kneeLock_IK_ctrl_WM.target[kneeTarget_index].offsetMatrix)
+
+            root_node = get_node(self.groups["SETUP"])
+            root_node.attr("input_list").set(json.dumps(self.input_list))
+            root_node.attr("kneeLock_list").set(json.dumps(self.kneeLock_list))
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print("ADDPARENT ERROR: ", e)
 
     def mirror(self, axis:list = [1, 0, 0]):
         """Mirror module based on list input marking the position to be mirrored"""
