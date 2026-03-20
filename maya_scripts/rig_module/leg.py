@@ -1541,12 +1541,13 @@ class LegModule:
             get_node(self.kneeLock_IK_ctrl).deleteAttr("space")
             get_node(self.kneeLock_IK_ctrl).addAttr(attr="space", niceName="Space", attributeType="enum", enumName=knee_enumNameStr, defaultValue=0, hidden=False, keyable=True)
 
-            worldspace_index = self.input_list.index("worldSpace")
+            foot_worldspace_index = self.input_list.index("worldSpace")
+            knee_worldspace_index = self.kneeLock_list.index("worldSpace")
             mainspace_index  = self.input_list.index(self.main_module)
 
             foot_world_enable = pm.PyNode(f"{self.name}_foot_IK_ctrl_worldSpaceEnable")
             pm.connectAttr(get_node(self.settings_ctrl).space, foot_world_enable.input1, force=True)
-            foot_world_enable.input2.set(worldspace_index)
+            foot_world_enable.input2.set(foot_worldspace_index)
 
             foot_main_enable = pm.PyNode(f"{self.name}_foot_IK_ctrl_{self.main_module}SpaceEnable")
             pm.connectAttr(get_node(self.settings_ctrl).space, foot_main_enable.input1, force=True)
@@ -1554,7 +1555,7 @@ class LegModule:
 
             knee_world_enable = pm.PyNode(f"{self.name}_kneeLock_IK_ctrl_worldSpaceEnable")
             pm.connectAttr(get_node(self.kneeLock_IK_ctrl).space, knee_world_enable.input1, force=True)
-            knee_world_enable.input2.set(worldspace_index)
+            knee_world_enable.input2.set(knee_worldspace_index)
 
             for i in range(target_index):
                 space_enable_name = f"{self.name}_foot_IK_ctrl_{self.input_list[i]}SpaceEnable"

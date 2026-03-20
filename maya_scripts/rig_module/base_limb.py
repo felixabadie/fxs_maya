@@ -1291,12 +1291,13 @@ class LimbModule:
         get_node(self.elbowLock_IK_ctrl).deleteAttr("space")
         get_node(self.elbowLock_IK_ctrl).addAttr(attr="space", niceName="Space", attributeType="enum", enumName=elbow_enumNameStr, defaultValue=0, hidden=False, keyable=True)
 
-        worldspace_index = self.input_list.index("worldSpace")
+        hand_worldspace_index = self.input_list.index("worldSpace")
+        elbow_worldspace_index = self.elbowLock_list.index("worldSpace")
         mainspace_index  = self.input_list.index(self.main_module)
 
         hand_world_enable = pm.PyNode(f"{self.name}_hand_IK_ctrl_worldSpaceEnable")
         pm.connectAttr(get_node(self.settings_ctrl).space, hand_world_enable.input1, force=True)
-        hand_world_enable.input2.set(worldspace_index)
+        hand_world_enable.input2.set(hand_worldspace_index)
 
         hand_main_enable = pm.PyNode(f"{self.name}_hand_IK_ctrl_{self.main_module}SpaceEnable")
         pm.connectAttr(get_node(self.settings_ctrl).space, hand_main_enable.input1, force=True)
@@ -1304,7 +1305,7 @@ class LimbModule:
 
         elbow_world_enable = pm.PyNode(f"{self.name}_elbowLock_IK_ctrl_worldSpaceEnable")
         pm.connectAttr(get_node(self.elbowLock_IK_ctrl).space, elbow_world_enable.input1, force=True)
-        elbow_world_enable.input2.set(worldspace_index)
+        elbow_world_enable.input2.set(elbow_worldspace_index)
 
         for i in range(target_index):
             space_enable_name = f"{self.name}_hand_IK_ctrl_{self.input_list[i]}SpaceEnable"
