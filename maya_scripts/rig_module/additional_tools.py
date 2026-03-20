@@ -38,6 +38,8 @@ class AddParent:
             pm.connectAttr(self.parentGuide_output.obj.offsetParentMatrix, parentGuide_input_module.offsetParentMatrix)
 
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             pm.error("Add Parent Error: ", e)
 
 

@@ -1500,6 +1500,7 @@ class LegModule:
         self.kneeLock_IK_ctrl_WM = pm.PyNode(f"{self.name}_kneeLock_IK_ctrl_WM")
         self.orientPlane_guide    = pm.PyNode(f"{self.name}_orientPlane_guide")
         self.ankle_FK_guide_outWM  = pm.PyNode(f"{self.name}_ankle_FK_guide_outWM")
+        self.foot_guide_outWM = pm.PyNode(f"{self.name}_foot_guide_outWM")
         self.upper_FK_guide_outWM = pm.PyNode(f"{self.name}_upper_FK_guide_outWM")
 
         # Outputs
@@ -1568,29 +1569,29 @@ class LegModule:
             upper_FK_ctrl_parentSpacePOM = create_pom(
                 module_name=self.name, name="upper_FK_ctrl_parentSpacePOM", source_matrix = self.upper_FK_guide_outWM.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0])
 
-            ankle_IK_ctrl_parentSpacePOM = create_pom(
-                module_name=self.name, name="ankle_IK_ctrl_parentSpacePOM", source_matrix = self.ankle_FK_guide_outWM.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0])
+            foot_IK_ctrl_parentSpacePOM = create_pom(
+                module_name=self.name, name="foot_IK_ctrl_parentSpacePOM", source_matrix = self.foot_guide_outWM.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0])
 
             knee_IK_ctrl_parentSpacePOM = create_pom(
                 module_name=self.name, name="knee_IK_ctrl_parentSpacePOM", source_matrix = self.orientPlane_guide.outputMatrix, parentGuide_input = parentGuide_input.worldInverseMatrix[0]
             )
 
-            ankle_IK_ctrl_parentSpaceEnable = equal(name=f"{self.name}_ankle_IK_ctrl_{parent_name}SpaceEnable")
-            pm.connectAttr(get_node(self.settings_ctrl).space, ankle_IK_ctrl_parentSpaceEnable.input1)
-            ankle_IK_ctrl_parentSpaceEnable.input2.set(target_index)
+            foot_IK_ctrl_parentSpaceEnable = equal(name=f"{self.name}_ankle_IK_ctrl_{parent_name}SpaceEnable")
+            pm.connectAttr(get_node(self.settings_ctrl).space, foot_IK_ctrl_parentSpaceEnable.input1)
+            foot_IK_ctrl_parentSpaceEnable.input2.set(target_index)
 
             #upper fk ctrl space switch
-            pm.connectAttr(ankle_IK_ctrl_parentSpaceEnable.output, self.upper_FK_ctrl_rotWM.target[target_index].enableTarget)
+            pm.connectAttr(foot_IK_ctrl_parentSpaceEnable.output, self.upper_FK_ctrl_rotWM.target[target_index].enableTarget)
             pm.connectAttr(parent_input.offsetParentMatrix, self.upper_FK_ctrl_rotWM.target[target_index].targetMatrix)
             pm.connectAttr(upper_FK_ctrl_parentSpacePOM.matrixSum, self.upper_FK_ctrl_rotWM.target[target_index].offsetMatrix)
 
             #ankle ik ctrl space switch
-            pm.connectAttr(ankle_IK_ctrl_parentSpaceEnable.output, self.foot_IK_ctrl_WM.target[target_index].enableTarget)
+            pm.connectAttr(foot_IK_ctrl_parentSpaceEnable.output, self.foot_IK_ctrl_WM.target[target_index].enableTarget)
             pm.connectAttr(parent_input.offsetParentMatrix, self.foot_IK_ctrl_WM.target[target_index].targetMatrix)
-            pm.connectAttr(ankle_IK_ctrl_parentSpacePOM.matrixSum, self.foot_IK_ctrl_WM.target[target_index].offsetMatrix)
+            pm.connectAttr(foot_IK_ctrl_parentSpacePOM.matrixSum, self.foot_IK_ctrl_WM.target[target_index].offsetMatrix)
 
             #knee ik ctrl space switch
-            pm.connectAttr(ankle_IK_ctrl_parentSpaceEnable.output, self.knee_IK_baseWM.target[target_index].enableTarget)
+            pm.connectAttr(foot_IK_ctrl_parentSpaceEnable.output, self.knee_IK_baseWM.target[target_index].enableTarget)
             pm.connectAttr(parent_input.offsetParentMatrix, self.knee_IK_baseWM.target[target_index].targetMatrix)
             pm.connectAttr(knee_IK_ctrl_parentSpacePOM.matrixSum, self.knee_IK_baseWM.target[target_index].offsetMatrix)
 
@@ -1609,10 +1610,15 @@ class LegModule:
             root_node = get_node(self.groups["SETUP"])
             root_node.attr("input_list").set(json.dumps(self.input_list))
             root_node.attr("kneeLock_list").set(json.dumps(self.kneeLock_list))
+        
+            return parent_input, parentGuide_input
+
         except Exception as e:
             import traceback
             traceback.print_exc()
             print("ADDPARENT ERROR: ", e)
+
+
 
     def mirror(self, axis:list = [1, 0, 0]):
         """Mirror module based on list input marking the position to be mirrored"""
