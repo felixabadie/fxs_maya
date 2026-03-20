@@ -433,6 +433,50 @@ class LegModule:
         pm.connectAttr(lower_length_manualScale.output, initial_length.input_[1])
 
 
+        # additional stuff to preserve foot when stretch disabled
+        hip_to_foot_initial_length = distanceBetween(name=f"{self.name}_hip_to_foot_initial_length")
+        pm.connectAttr(self.upper_guide.worldMatrix[0], hip_to_foot_initial_length.inMatrix1)
+        pm.connectAttr(self.foot_guide.worldMatrix[0], hip_to_foot_initial_length.inMatrix2)
+
+        hip_to_foot_current_length = distanceBetween(name=f"{self.name}_hip_to_foot_current_length")
+        pm.connectAttr(self.upper_guide.worldMatrix[0], hip_to_foot_current_length.inMatrix1)
+        pm.connectAttr(foot_IK_ctrl.worldMatrix[0], hip_to_foot_current_length.inMatrix2)
+
+        hip_to_foot_length_clamped = min_(name=f"{self.name}_hip_to_foot_length_clamped")
+        pm.connectAttr(hip_to_foot_initial_length.distance, hip_to_foot_length_clamped.input_[0])
+        pm.connectAttr(hip_to_foot_current_length.distance, hip_to_foot_length_clamped.input_[1])
+
+        hip_to_foot_aim = aimMatrix(name=f"{self.name}_hip_to_foot_aim")
+        pm.connectAttr(self.upper_guide.worldMatrix[0], hip_to_foot_aim.inputMatrix)
+        pm.connectAttr(foot_IK_ctrl.worldMatrix[0], hip_to_foot_aim.primaryTargetMatrix)
+
+        hip_to_foot_offset = transform(name=f"{self.name}_hip_to_foot_offset")
+        pm.connectAttr(hip_to_foot_aim.outputMatrix, hip_to_foot_offset.offsetParentMatrix)
+        pm.connectAttr(hip_to_foot_length_clamped.output, hip_to_foot_offset.translateX)
+
+        foot_IK_ctrl_axes = extract_matrix_axes(module_name=self.name, name="foot_IK_ctrl_axes", input=foot_IK_ctrl.worldMatrix[0])
+
+        hip_to_foot_offset_t = rowFromMatrix(name=f"{self.name}_hip_to_foot_offset_t")
+        pm.connectAttr(hip_to_foot_offset.worldMatrix[0], hip_to_foot_offset_t.matrix)
+        hip_to_foot_offset_t.input_.set(3)
+
+        foot_no_stretch_WM = create_fourByFourMatrix(
+            module_name=self.name,
+            name="foot_no_stretch_WM",
+            inputs=[
+                [foot_IK_ctrl_axes["X"].outputX, foot_IK_ctrl_axes["X"].outputY, foot_IK_ctrl_axes["X"].outputZ],
+                [foot_IK_ctrl_axes["Y"].outputX, foot_IK_ctrl_axes["Y"].outputY, foot_IK_ctrl_axes["Y"].outputZ],
+                [foot_IK_ctrl_axes["Z"].outputX, foot_IK_ctrl_axes["Z"].outputY, foot_IK_ctrl_axes["Z"].outputZ],
+                [hip_to_foot_offset_t.outputX, hip_to_foot_offset_t.outputY, hip_to_foot_offset_t.outputZ, hip_to_foot_offset_t.outputW]
+            ]
+        )
+
+        foot_IK_stretch_WM = blendMatrix(name=f"{self.name}_foot_IK_stretch_WM")
+        pm.connectAttr(foot_no_stretch_WM.output, foot_IK_stretch_WM.inputMatrix)
+        pm.connectAttr(foot_IK_ctrl.worldMatrix[0], foot_IK_stretch_WM.target[0].targetMatrix)
+        pm.connectAttr(self.settings_ctrl.node.enableIkStretch, foot_IK_stretch_WM.target[0].weight)
+
+
         self.upper_FK_guide_outWM = aimMatrix(name=f"{self.name}_upper_FK_guide_outWM")
         pm.connectAttr(self.upper_guide.worldMatrix[0], self.upper_FK_guide_outWM.inputMatrix)
         pm.connectAttr(self.lower_guide.worldMatrix[0], self.upper_FK_guide_outWM.primaryTargetMatrix)
@@ -628,7 +672,7 @@ class LegModule:
             "left_bank_hierarchy":{
                 "name": "foot_left_bank",
                 "guide": self.foot_left_bank_guide.worldMatrix[0],
-                "parent": foot_IK_ctrl.worldMatrix[0],
+                "parent": foot_IK_stretch_WM.outputMatrix,
                 "parentGuide": self.foot_guide.worldInverseMatrix[0]
             },
             "right_bank": {
@@ -1408,7 +1452,7 @@ class LegModule:
             "controls": [upper_FK_ctrl, lower_FK_ctrl, ankle_FK_ctrl, foot_IK_ctrl, knee_IK_ctrl, self.settings_ctrl, self.kneeLock_IK_ctrl, foot_ball_FK_ctrl],
             "helpers": [kneeLock_IK_helper, upper_proxy_helper, lower_proxy_helper, foot_ball_proxy_helper, foot_end_proxy_helper],
             "joints": [upper_jnt, lower_jnt, ankle_jnt, foot_ball_jnt, foot_end_jnt, ribbon_joints_grp],
-            "rigNodes": [foot_left_bank_offset, foot_right_bank_offset, foot_heel_offset, foot_end_offset, foot_ball_offset, ankle_IK_offset, ribbon_pin_grp, ribbon],
+            "rigNodes": [hip_to_foot_offset, foot_left_bank_offset, foot_right_bank_offset, foot_heel_offset, foot_end_offset, foot_ball_offset, ankle_IK_offset, ribbon_pin_grp, ribbon],
             "outputs": [self.ankle_output, self.ankleGuide_output]
         }
 
