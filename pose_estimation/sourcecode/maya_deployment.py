@@ -9,7 +9,9 @@ import shutil
 import time
 import os
 
-draw_to_image_folder = Path(r"D:\fa026_Bachelor\draw_to_folder")
+from const import draw_to_image_folder
+
+#draw_to_image_folder = Path(r"D:\fa026_Bachelor\draw_to_folder")
 #drawing_export_dir = Path(r"D:\fa026_DONT_TOUCH_OR_I_WILL_FIND_YOU\draw_to_folder\drawing_01")
 
 joint_rotation_ranges = {

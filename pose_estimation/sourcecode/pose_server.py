@@ -11,7 +11,6 @@ from torchvision import transforms
 import os
 import time
 import json
-import threading
 from const import best_model_dir, active_mask_path, server_icon
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -54,13 +53,16 @@ def get_valid_indices():
             for idx, value in enumerate(rotations):
                 if abs(value) > 1e-6:
                     active_indices.append(idx)
+
+            if not active_indices:
+                print("Warning: no active indices found, using fallback")
+                return list(range(51))
                     
             print(f"Detected {len(active_indices)} active indices from reference file: {active_indices}")
             return active_indices
                     
     except Exception as e:
         print(f"Error loading active_mask_path: {e}")
-
         return list(range(51))
 
 # === Modell laden ===
@@ -106,6 +108,7 @@ async def predict_pose(file: UploadFile = File(...)):
 
         with torch.no_grad():
             pred = model(input_tensor).squeeze().cpu().numpy()
+            pred = np.atleast_1d(pred)
 
         # ggf. aktives → full-format:
         full_pred = np.zeros(51, dtype=np.float32)

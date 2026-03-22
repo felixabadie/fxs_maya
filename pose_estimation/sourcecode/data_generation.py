@@ -118,6 +118,13 @@ def render_defined_sequence(image_export_path):
     and starts Render.exe as a batch render
     """
 
+    image_export_path = Path(image_export_path)
+    if image_export_path.exists():
+        for file in image_export_path.iterdir():
+            if file.is_file():
+                file.unlink()
+        print(f"Cleared {image_export_path}")
+
     filename = "image_"
     cmds.setAttr("defaultRenderGlobals.imageFilePrefix", filename, type="string")
     cmds.setAttr("defaultRenderGlobals.extensionPadding", 6)
@@ -136,7 +143,7 @@ def render_defined_sequence(image_export_path):
     scenefile = cmds.file(q=True, sn=True)
 
     try:
-        cmds.saveFile(force=True)
+        cmds.file(save=True, force=True)
         print("scene saved")
     except:
         print("scene not saved")

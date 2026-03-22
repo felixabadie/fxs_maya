@@ -56,14 +56,18 @@ def create_userSetup():
     file_content = [
         "import sys",
         "import importlib",
+        "from site import addsitedir",
         f"sys.path.append(r'{str(MAIN_PATH)}')",
         f"sys.path.append(r'{str(BACHELOR_TOOL_DIR)}')",
         f"sys.path.append(r'{str(SCRIPTS_DIR)}')",
         f"sys.path.append(r'{str(CAPITO_PATH)}')",
+        f"sys.path.append(r'{str(Path(site_packages_dir))}')",
+        "addsitedir(r'F:\WORK\venv\Lib\site-packages')",
         "import pymel.core as pm",
         'importlib.import_module("capito.maya.setup")',
         "from pose_estimation.sourcecode.setup import add_shelves",
         "from maya_scripts.setup import built_matrix_rigging_tool_shelf",
+        ""
         "add_shelves()",
         "built_matrix_rigging_tool_shelf()"
     ]
