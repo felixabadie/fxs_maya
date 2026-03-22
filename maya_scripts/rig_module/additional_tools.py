@@ -55,6 +55,7 @@ class Mirror:
                 self.module = TextFieldHelper("Module: ")
                 self.mirror_parent = TextFieldHelper("Mirror Parent: ")
                 self.mirror_parentGuide = TextFieldHelper("Mirror Parent Guide: ")
+                self.mirror_name = TextFieldHelper("New Module Name: ")
                 pm.text(label="Check the Axis to mirror: ")
                 self.mirror_axis = pm.checkBoxGrp(numberOfCheckBoxes=3, label="X", label2="Y", label3="Z")
                 pm.text("Select the corresponding SETUP node and fill out the Axis")
@@ -65,6 +66,8 @@ class Mirror:
     
     def execute(self, *args):
         module = get_module_from_group(self.module.obj)
+
+        mirror_name = self.mirror_name.control.getText()
 
         try:
             # Zuerst upstream Nodes holen und validieren
@@ -85,6 +88,7 @@ class Mirror:
 
             # Mirror Modul erstellen
             mirror_module = module.mirror(
+                    name = mirror_name,
                     axis=[
                         mirror_value1,
                         mirror_value2,

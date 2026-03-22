@@ -110,6 +110,7 @@ class ClavicleManager:
         if mirror_value1 == True or mirror_value2 == True or mirror_value3 == True:
             try:
                 self.mirror_module = self.module.mirror(
+                    name=self.name,
                     axis=[
                         mirror_value1,
                         mirror_value2,
@@ -318,7 +319,7 @@ class ClavicleModule:
         registry.register(self.name, self)
 
 
-    def mirror(self, axis:list = [1, 0, 0]):
+    def mirror(self, name:str, axis:list = [1, 0, 0]):
         """Mirror module based on list input marking the position to be mirrored"""
         opposite_side = "R" if self.limb_side == "L" else "L"
         opposite_color = right_fk_color if self.limb_side == "L" else left_fk_color
@@ -328,7 +329,7 @@ class ClavicleModule:
 
         module = ClavicleModule(
             parent_module=self.parent_module,
-            limb_type=self.limb_type,
+            limb_type=name,
             limb_side=opposite_side,
             start_guide_pos=mirror_position(position=current_guide_positions["start"], negate_axis=axis),
             end_guide_pos=mirror_position(position=current_guide_positions["end"], negate_axis=axis),

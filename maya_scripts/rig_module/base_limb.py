@@ -153,6 +153,7 @@ class LimbManager:
             try:
                 
                 self.mirror_module = self.module.mirror(
+                    name=name, 
                     axis=[
                         mirror_value1,
                         mirror_value2,
@@ -1365,7 +1366,7 @@ class LimbModule:
         return parent_input, parentGuide_input
     
 
-    def mirror(self, axis:list = [1, 0, 0]):
+    def mirror(self, name:str, axis:list = [1, 0, 0]):
         """Mirror module based on list input marking the position to be mirrored"""
         opposite_side = "R" if self.limb_side == "L" else "L"
         opposite_fk_color = right_fk_color if self.limb_side == "L" else left_fk_color
@@ -1377,7 +1378,7 @@ class LimbModule:
         module = LimbModule(
             parent_module=self.parent_module,
             main_module=self.main_module,
-            limb_type=self.limb_type,
+            limb_type=name,
             limb_side=opposite_side,
             upper_guide_pos=mirror_position(position=current_guide_positions["upper_guide"], negate_axis=axis),
             lower_guide_pos=mirror_position(position=current_guide_positions["lower_guide"], negate_axis=axis),
