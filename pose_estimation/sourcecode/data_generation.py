@@ -8,7 +8,9 @@ from contextlib import contextmanager
 from pathlib import Path
 from maya import cmds
 
-training_data_path = Path(r"D:\fa026_Bachelor\Training_data")
+from const import training_data_path
+
+#training_data_path = Path(r"D:\fa026_Bachelor\Training_data")
 
 total_start_frame = int(cmds.playbackOptions(q=True, min=True))
 total_end_frame = int(cmds.playbackOptions(q=True, max=True))
