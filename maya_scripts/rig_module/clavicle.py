@@ -110,7 +110,7 @@ class ClavicleManager:
         if mirror_value1 == True or mirror_value2 == True or mirror_value3 == True:
             try:
                 self.mirror_module = self.module.mirror(
-                    name=self.name,
+                    name=name,
                     axis=[
                         mirror_value1,
                         mirror_value2,
