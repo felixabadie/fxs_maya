@@ -401,6 +401,8 @@ class LegModule:
         foot_IK_ctrl = control.create(ctrl_type="box", degree=1, name="foot_IK_ctrl", size=[2, 2, 2], color=ik_color)
         foot_IK_ctrl.node.addAttr(attr="roll", attributeType="float", defaultValue=0, hidden=False, keyable=True)
         foot_IK_ctrl.node.addAttr(attr="bank", attributeType="float", defaultValue=0, hidden=False, keyable=True)
+        foot_IK_ctrl.node.addAttr(attr="heelPivot", niceName="heel pivot", attributeType="float", defaultValue=0, hidden=False, keyable=True)
+        foot_IK_ctrl.node.addAttr(attr="endPivot", niceName="end pivot", attributeType="float", defaultValue=0, hidden=False, keyable=True)
 
         knee_IK_ctrl = control.create(ctrl_type="pyramid", degree=1, name=f"{self.name}_knee_IK_ctrl", size=[0.5, 6, 0.5], color=ik_color)
         lock_ctrl_attrs(knee_IK_ctrl, ["translateX", "translateY", "translateZ", "rotateY", "rotateZ", "scaleX", "scaleY", "scaleZ"])
@@ -772,6 +774,9 @@ class LegModule:
 
         pm.connectAttr(bank_left_condition.outColorR, foot_left_bank_offset.rotateZ)
         pm.connectAttr(bank_right_condition.outColorR, foot_right_bank_offset.rotateZ)
+
+        pm.connectAttr(foot_IK_ctrl.node.endPivot, foot_end_offset.rotateY)
+        pm.connectAttr(foot_IK_ctrl.node.heelPivot, foot_heel_offset.rotateY)
 
         #IK knee
 
