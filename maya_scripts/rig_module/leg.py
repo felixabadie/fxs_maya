@@ -678,7 +678,7 @@ class LegModule:
             },
             "right_bank": {
                 "name": "foot_right_bank",
-                "guide": self.foot_left_bank_guide.worldMatrix[0],
+                "guide": self.foot_right_bank_guide.worldMatrix[0],
                 "parent": foot_left_bank_offset.worldMatrix[0],
                 "parentGuide": self.foot_left_bank_guide.worldInverseMatrix[0]
             },
@@ -686,7 +686,7 @@ class LegModule:
                 "name": "foot_heel",
                 "guide": self.foot_heel_guide.worldMatrix[0],
                 "parent": foot_right_bank_offset.worldMatrix[0],
-                "parentGuide": self.foot_left_bank_guide.worldInverseMatrix[0]
+                "parentGuide": self.foot_right_bank_guide.worldInverseMatrix[0]
             },
             "end_hierarchy": {
                 "name": "foot_end",
