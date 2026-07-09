@@ -16,7 +16,7 @@ sys.path.append(site_packages_dir)
 sys.path.append(scripts_dir)
 
 from prox_node_setup.generated_nodes import *
-from pyi_test.nodeTest import __remapValue
+from maya_scripts.prox_node_setup.pyi_test.nodeTest import __remapValue
 
 """loc = pm.spaceLocator(name="a")
 loc1 = pm.spaceLocator(name="b")

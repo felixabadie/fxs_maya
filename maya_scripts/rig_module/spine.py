@@ -1,9 +1,9 @@
 import json
 import pymel.core as pm
-from maya_scripts import control
-from maya_scripts import registry
+from maya_scripts.rig_module.additional_files import control
+from maya_scripts.rig_module.additional_files import registry
 from maya_scripts.prox_node_setup.generated_nodes import *
-from maya_scripts.utilities import (
+from maya_scripts.rig_module.additional_files.utilities import (
     create_guide, 
     create_groups,
     create_ik_fk_blend, 

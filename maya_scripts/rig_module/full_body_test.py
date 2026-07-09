@@ -1,9 +1,9 @@
 import json
 import pymel.core as pm
 from maya_scripts.prox_node_setup.generated_nodes import *
-from utilities import TextFieldHelper
+from maya_scripts.rig_module.additional_files.utilities import TextFieldHelper
 
-from maya_scripts import registry
+from maya_scripts.rig_module.additional_files import registry
 
 from rig_module.leg import LegModule
 from rig_module.root import RootModule

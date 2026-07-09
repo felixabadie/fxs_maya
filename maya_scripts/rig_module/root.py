@@ -1,9 +1,9 @@
 import pymel.core as pm
 import maya.api.OpenMaya as om2
-from maya_scripts import control
-from maya_scripts import registry
+from maya_scripts.rig_module.additional_files import control
+from maya_scripts.rig_module.additional_files import registry
 from maya_scripts.prox_node_setup.generated_nodes import *
-from maya_scripts.utilities import create_groups, create_guide, TextFieldHelper
+from maya_scripts.rig_module.additional_files.utilities import create_groups, create_guide, TextFieldHelper
 
 guide_color = (1, 1, 1)
 god_color = (1, 0, 1)

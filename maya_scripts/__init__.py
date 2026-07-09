@@ -1,4 +1,4 @@
-from maya_scripts import registry
+from maya_scripts.rig_module.additional_files import registry
 from maya_scripts.rig_module.root import RootModule
 from maya_scripts.rig_module.spine import SpineModule
 from maya_scripts.rig_module.clavicle import ClavicleModule

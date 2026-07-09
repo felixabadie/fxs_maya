@@ -4,7 +4,7 @@ from json import JSONEncoder
 import logging
 import pymel.core as pm
 from pathlib import Path
-from maya_scripts import registry
+from maya_scripts.rig_module.additional_files import registry
 from maya_scripts.prox_node_setup.generated_nodes import *
 
 LOGGER = logging.getLogger("Rigging Utils")

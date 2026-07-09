@@ -1,8 +1,8 @@
 import json
-import control
+import maya_scripts.rig_module.additional_files.control as control
 import pymel.core as pm
 from prox_node_setup.generated_nodes import *
-from manual_node_classes import create_guide, colorize, create_groups, create_groups_
+from maya_scripts.prox_node_setup.manual_node_classes import create_guide, colorize, create_groups, create_groups_
 
 guide_color = [1, 1, 1]
 limb_connection_color = [0, 0, 0]

@@ -1,10 +1,10 @@
 import os
 import json
-from maya_scripts import utils
+from maya_scripts.rig_module.additional_files import utils
 import logging
 from enum import Enum
 import pymel.core as pm
-from maya_scripts.utilities import colorize
+from maya_scripts.rig_module.additional_files.utilities import colorize
 from maya_scripts.prox_node_setup.generated_nodes import *
 #from maya import OpenMaya as om
 

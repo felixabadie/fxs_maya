@@ -12,8 +12,8 @@ a:AimMatrix = pm.createNode("aimMatrix")
 a.listAttr"""
 
 
-from manual_node_classes import create_guide, colorize, maya_nodes, blend_target, parent_target
-import control
+from maya_scripts.prox_node_setup.manual_node_classes import create_guide, colorize, maya_nodes, blend_target, parent_target
+import maya_scripts.rig_module.additional_files.control as control
 
 guide_color = [1, 1, 1]
 right_fk_color = [1, 0, 0]
