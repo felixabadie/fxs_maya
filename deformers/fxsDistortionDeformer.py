@@ -52,7 +52,7 @@ class FxsDistortionDeformer(OpenMayaMPx.MPxDeformerNode):
         numeric_attr_fn.readable = False
         numeric_attr_fn.writable = True
         numeric_attr_fn.keyable = True
-        cls.addAtribute(cls.aDeformIterations)
+        cls.addAttribute(cls.aDeformIterations)
 
         cls.aDeformScale = numeric_attr_fn.create(
             "deformScale",
@@ -83,6 +83,8 @@ class FxsDistortionDeformer(OpenMayaMPx.MPxDeformerNode):
     def deform(
             self,
             data_block,
+            geometry_iterator,
+            local_to_world_matrix,
             geometry_index
     ):
 
@@ -113,6 +115,8 @@ class FxsDistortionDeformer(OpenMayaMPx.MPxDeformerNode):
             mesh_fn.getPoint(vertex_index, current_point, OpenMaya.MSpace.kTransform)
 
             new_point = self.getDeformedPoint(current_point, iterations=deform_iterations_value)
+            mesh_vertex_iterator.setPosition(new_point, OpenMaya.MSpace.kTransform)
+            mesh_fn.setPoint(vertex_index, new_point, OpenMaya.MSpace.kTransform)
 
 
     def getDeformedPoint(self, point, iterations):
@@ -183,6 +187,25 @@ def initializePlugin(plugin):
 
     # Load custom Attribute Editor GUI.
     mel_eval( gui_template )
+
+
+# taken from plugin, no changes exept name
+def uninitializePlugin(plugin):
+    """Called when plugin is unloaded.
+
+    Args:
+        plugin (MObject): The plugin.
+    """
+    plugin_fn = OpenMayaMPx.MFnPlugin(plugin, "Felix Abadie", "0.0.1")
+
+    try:
+        plugin_fn.deregisterNode(FxsDistortionDeformer.type_id)
+    except:
+        print( "failed to deregister node {0}".format(
+            FxsDistortionDeformer.type_name
+        ))
+        raise
+
 
 #  Custom attribute editor gui template
 gui_template = '''
