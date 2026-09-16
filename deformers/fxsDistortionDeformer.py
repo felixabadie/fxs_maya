@@ -118,6 +118,7 @@ class FxsDistortionDeformer(OpenMayaMPx.MPxDeformerNode):
             mesh_vertex_iterator.setPosition(new_point, OpenMaya.MSpace.kTransform)
             mesh_fn.setPoint(vertex_index, new_point, OpenMaya.MSpace.kTransform)
 
+            mesh_vertex_iterator.next()
 
     def getDeformedPoint(self, point, iterations):
         """
