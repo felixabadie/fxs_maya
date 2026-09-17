@@ -226,28 +226,6 @@ class FxsDistortionDeformer(OpenMayaMPx.MPxDeformerNode):
         return self.getDeformedPoint(new_point, envelope_value, amplitude, period, phase_shift, iterations - 1)
 
 
-    """def getScaledDeformedPoint(
-            self, 
-            point, 
-            envelope_value, 
-            amplitude, 
-            period, 
-            phase_shift, 
-            iterations, 
-            scale_value):
-    
-            if iterations <= 0:
-                return point
-    
-            new_point_x = point.x + amplitude * ((math.sin(math.pow(2, scale_value)* (period * point.y) + phase_shift) / math.pow(2, scale_value)) * envelope_value)
-            new_point_y = point.y + amplitude * ((math.sin(math.pow(2, scale_value)* (period * point.z) + phase_shift) / math.pow(2, scale_value)) * envelope_value)
-            new_point_z = point.z + amplitude * ((math.sin(math.pow(2, scale_value)* (period * point.x) + phase_shift) / math.pow(2, scale_value)) * envelope_value)
-            
-            new_point = OpenMaya.MPoint(new_point_x, new_point_y, new_point_z)
-            
-            return self.getScaledDeformedPoint(new_point, envelope_value, amplitude, period, phase_shift, iterations - 1, scale_value)"""
-
-
     def getFractalDeformedPoint(
             self,
             point,
