@@ -1,5 +1,5 @@
 import math
-from maya import cmds
+#from maya import cmds
 import maya.OpenMaya as OpenMaya
 from maya.mel import eval as mel_eval
 import maya.OpenMayaMPx as OpenMayaMPx
@@ -32,8 +32,13 @@ class FxsDistortionDeformer(OpenMayaMPx.MPxDeformerNode):
     type_id = OpenMaya.MTypeId(0x00000010)
     type_name = "FxsDistortionDeformer"
 
+    aActivateScaler = None
+
+    aDeformAmplitude = None
+    aDeformPeriod = None
+    aDeformPhaseShift = None
+
     aDeformIterations = None
-    aDeformScale = None
 
 
     def __init__(self):
@@ -44,6 +49,50 @@ class FxsDistortionDeformer(OpenMayaMPx.MPxDeformerNode):
     def initialize(cls):
         numeric_attr_fn = OpenMaya.MFnNumericAttribute()
 
+        cls.aActivateScaler = numeric_attr_fn.create(
+            "activateDeformationScale",
+            "ads",
+            OpenMaya.MFnNumericData.kBoolean,
+            False
+        )
+        numeric_attr_fn.readable = False
+        numeric_attr_fn.writable = True
+        numeric_attr_fn.keyable = True
+        cls.addAttribute(cls.aActivateScaler)
+
+        cls.aDeformAmplitude = numeric_attr_fn.create(
+            "deformAmplitude",
+            "da",
+            OpenMaya.MFnNumericData.kFloat,
+            1.0
+        )
+        numeric_attr_fn.readable = False
+        numeric_attr_fn.writable = True
+        numeric_attr_fn.keyable = True
+        cls.addAttribute(cls.aDeformAmplitude)
+
+        cls.aDeformPeriod = numeric_attr_fn.create(
+            "deformPeriod",
+            "dp",
+            OpenMaya.MFnNumericData.kFloat,
+            1.0
+        )
+        numeric_attr_fn.readable = False
+        numeric_attr_fn.writable = True
+        numeric_attr_fn.keyable = True
+        cls.addAttribute(cls.aDeformPeriod)
+
+        cls.aDeformPhaseShift = numeric_attr_fn.create(
+            "deformPhaseShift",
+            "dps",
+            OpenMaya.MFnNumericData.kFloat,
+            0.0
+        )
+        numeric_attr_fn.readable = False
+        numeric_attr_fn.writable = True
+        numeric_attr_fn.keyable = True
+        cls.addAttribute(cls.aDeformPhaseShift)
+
         cls.aDeformIterations = numeric_attr_fn.create(
             "deformIterations",
             "di",
@@ -52,20 +101,15 @@ class FxsDistortionDeformer(OpenMayaMPx.MPxDeformerNode):
         numeric_attr_fn.readable = False
         numeric_attr_fn.writable = True
         numeric_attr_fn.keyable = True
+        numeric_attr_fn.setMin(0)
         cls.addAttribute(cls.aDeformIterations)
 
-        cls.aDeformScale = numeric_attr_fn.create(
-            "deformScale",
-            "ds",
-            OpenMaya.MFnNumericData.kInt
-        )
-        numeric_attr_fn.readable = False
-        numeric_attr_fn.writable = True
-        numeric_attr_fn.keyable = True
-        cls.addAttribute(cls.aDeformScale)
-
+    
+        cls.attributeAffects(cls.aActivateScaler, kOutputGeom)
+        cls.attributeAffects(cls.aDeformAmplitude, kOutputGeom)
+        cls.attributeAffects(cls.aDeformPeriod, kOutputGeom)
+        cls.attributeAffects(cls.aDeformPhaseShift, kOutputGeom)
         cls.attributeAffects(cls.aDeformIterations, kOutputGeom)
-        cls.attributeAffects(cls.aDeformScale, kOutputGeom)
 
 
     @classmethod
@@ -91,9 +135,13 @@ class FxsDistortionDeformer(OpenMayaMPx.MPxDeformerNode):
         envelope_attribute = kEnvelope
         envelope_value = data_block.inputValue(envelope_attribute).asFloat()
 
-        deform_iterations_value = data_block.inputValue(self.aDeformIterations).asInt()
+        activate_deform_scaler_value = data_block.inputValue(self.aActivateScaler).asBool()
 
-        deform_scale_value = data_block.inputValue(self.aDeformScale).asInt()
+        amplitude_value = data_block.inputValue(self.aDeformAmplitude).asFloat()
+        period_value = data_block.inputValue(self.aDeformPeriod).asFloat()
+        phase_shift_value = data_block.inputValue(self.aDeformPhaseShift).asFloat()
+
+        deform_iterations_value = data_block.inputValue(self.aDeformIterations).asInt()
 
         input_geometry_object = self.getDeformerInputGeometry(
                     data_block,
@@ -103,24 +151,66 @@ class FxsDistortionDeformer(OpenMayaMPx.MPxDeformerNode):
         mesh_fn = OpenMaya.MFnMesh(input_geometry_object)
         mesh_vertex_iterator = OpenMaya.MItMeshVertex(input_geometry_object)
 
-        # original points if necessary
-        orig_points = OpenMaya.MPointArray()
-        mesh_fn.getPoints(orig_points)
-
-
+        
         while not mesh_vertex_iterator.isDone():
             vertex_index = mesh_vertex_iterator.index()
 
             current_point = OpenMaya.MPoint()
             mesh_fn.getPoint(vertex_index, current_point, OpenMaya.MSpace.kTransform)
 
-            new_point = self.getDeformedPoint(current_point, iterations=deform_iterations_value)
-            mesh_vertex_iterator.setPosition(new_point, OpenMaya.MSpace.kTransform)
-            mesh_fn.setPoint(vertex_index, new_point, OpenMaya.MSpace.kTransform)
+            max_iterations = deform_iterations_value
+
+            if activate_deform_scaler_value == False:
+                try: 
+                    new_point = self.getDeformedPoint(
+                        point=current_point, 
+                        envelope_value=envelope_value, 
+                        amplitude=amplitude_value,
+                        period=period_value,
+                        phase_shift=phase_shift_value,
+                        iterations=deform_iterations_value
+                    )
+
+                except Exception as e:
+                    print(f"Non scaled point calculation failed: {e}")
+                    new_point = current_point
+                
+                mesh_vertex_iterator.setPosition(new_point, OpenMaya.MSpace.kTransform)
+                mesh_fn.setPoint(vertex_index, new_point, OpenMaya.MSpace.kTransform)
+
+            else:
+
+                # not sure what to use for scale value
+
+                try:
+                    new_point = self.getFractalDeformedPoint(
+                        point=current_point,
+                        envelope_value=envelope_value,
+                        amplitude=amplitude_value,
+                        period=period_value,
+                        phase_shift=phase_shift_value,
+                        iterations=deform_iterations_value,
+                        max_iterations=max_iterations
+                    )
+
+                except Exception as f:
+                    print(f"Scaled Point calculation failed: {f}")
+                    new_point = current_point
+
+                mesh_vertex_iterator.setPosition(new_point, OpenMaya.MSpace.kTransform)
+                mesh_fn.setPoint(vertex_index, new_point, OpenMaya.MSpace.kTransform)
 
             mesh_vertex_iterator.next()
 
-    def getDeformedPoint(self, point, iterations):
+
+    def getDeformedPoint(
+            self, 
+            point, 
+            envelope_value, 
+            amplitude, 
+            period, 
+            phase_shift, 
+            iterations):
         """
         f(x, y, z) = (x + sin(y), y + sin(z), z + sin(x)) base distortion function
         """
@@ -128,13 +218,71 @@ class FxsDistortionDeformer(OpenMayaMPx.MPxDeformerNode):
         if iterations <= 0:
             return point
 
-        new_point_x = point.x + math.sin(point.y)
-        new_point_y = point.y + math.sin(point.z)
-        new_point_z = point.z + math.sin(point.x)
+        new_point_x = point.x + amplitude * (math.sin((period * point.y) + phase_shift) * envelope_value)
+        new_point_y = point.y + amplitude * (math.sin((period * point.z) + phase_shift) * envelope_value)
+        new_point_z = point.z + amplitude * (math.sin((period * point.x) + phase_shift) * envelope_value)
         
         new_point = OpenMaya.MPoint(new_point_x, new_point_y, new_point_z)
         
-        return self.getDeformedPoint(new_point, iterations - 1)
+        return self.getDeformedPoint(new_point, envelope_value, amplitude, period, phase_shift, iterations - 1)
+
+
+    """def getScaledDeformedPoint(
+            self, 
+            point, 
+            envelope_value, 
+            amplitude, 
+            period, 
+            phase_shift, 
+            iterations, 
+            scale_value):
+    
+            if iterations <= 0:
+                return point
+    
+            new_point_x = point.x + amplitude * ((math.sin(math.pow(2, scale_value)* (period * point.y) + phase_shift) / math.pow(2, scale_value)) * envelope_value)
+            new_point_y = point.y + amplitude * ((math.sin(math.pow(2, scale_value)* (period * point.z) + phase_shift) / math.pow(2, scale_value)) * envelope_value)
+            new_point_z = point.z + amplitude * ((math.sin(math.pow(2, scale_value)* (period * point.x) + phase_shift) / math.pow(2, scale_value)) * envelope_value)
+            
+            new_point = OpenMaya.MPoint(new_point_x, new_point_y, new_point_z)
+            
+            return self.getScaledDeformedPoint(new_point, envelope_value, amplitude, period, phase_shift, iterations - 1, scale_value)"""
+
+
+    def getFractalDeformedPoint(
+            self,
+            point,
+            envelope_value,
+            amplitude,
+            period,
+            phase_shift,
+            iterations,
+            max_iterations
+    ):
+
+        """
+        for each step add:
+        """
+
+        if iterations <= 0:
+            return point
+
+        steps = (max_iterations - iterations) + 1
+        power_value = (max_iterations - iterations)
+
+        new_point_x = 0
+        new_point_y = 0
+        new_point_z = 0
+
+        for step in range(steps):
+
+            new_point_x += point.x + amplitude * ((math.sin(math.pow(2, power_value) * (period * point.y) + phase_shift) / math.pow(2, power_value)) * envelope_value)
+            new_point_y += point.y + amplitude * ((math.sin(math.pow(2, power_value) * (period * point.z) + phase_shift) / math.pow(2, power_value)) * envelope_value)
+            new_point_z += point.z + amplitude * ((math.sin(math.pow(2, power_value) * (period * point.x) + phase_shift) / math.pow(2, power_value)) * envelope_value)
+
+        new_point = OpenMaya.MPoint(new_point_x, new_point_y, new_point_z)
+        return self.getFractalDeformedPoint(new_point, envelope_value, amplitude, period, phase_shift, iterations-1, max_iterations)
+         
 
 
 
@@ -217,10 +365,13 @@ gui_template = '''
             editorTemplate -beginLayout "Distortion Deformer Attributes" -collapse 0;
                 editorTemplate -addSeparator;
                 editorTemplate -addControl  "envelope" ;
+                editorTemplate -addControl  "activateDeformationScale" ;
+                editorTemplate -addControl  "deformAmplitude" ;
+                editorTemplate -addControl  "deformPeriod" ;
+                editorTemplate -addControl  "deformPhaseShift" ;
                 editorTemplate -addControl  "deformIterations";
-                editorTemplate -addControl "deformScale" ;
             editorTemplate -endLayout;
-            // Add base node attributes
+            // Add base node attributes+
             AEdependNodeTemplate $nodeName;
             // Add extra atttributes
             editorTemplate -addExtraControls;
