@@ -189,8 +189,7 @@ class FxsDistortionDeformer(OpenMayaMPx.MPxDeformerNode):
                         amplitude=amplitude_value,
                         period=period_value,
                         phase_shift=phase_shift_value,
-                        iterations=deform_iterations_value,
-                        max_iterations=max_iterations
+                        iterations=deform_iterations_value
                     )
 
                 except Exception as f:
@@ -257,33 +256,30 @@ class FxsDistortionDeformer(OpenMayaMPx.MPxDeformerNode):
             period,
             phase_shift,
             iterations,
-            max_iterations
     ):
 
         """
         for each step add:
         """
 
-        if iterations <= 0:
-            return point
+        offset_x = 0.0
+        offset_y = 0.0
+        offset_z = 0.0
 
-        steps = (max_iterations - iterations) + 1
-        power_value = (max_iterations - iterations)
+        for n in range(iterations):
+            scale = math.pow(2, n)
 
-        new_point_x = 0
-        new_point_y = 0
-        new_point_z = 0
+            offset_x += (math.sin(scale * period * point.y + phase_shift) / scale) * amplitude
+            offset_y += (math.sin(scale * period * point.z + phase_shift) / scale) * amplitude
+            offset_z += (math.sin(scale * period * point.x + phase_shift) / scale) * amplitude
 
-        for step in range(steps):
+        new_point = OpenMaya.MPoint(
+            point.x + offset_x * envelope_value,
+            point.y + offset_y * envelope_value,
+            point.z + offset_z * envelope_value
+        )
 
-            new_point_x += point.x + amplitude * ((math.sin(math.pow(2, power_value) * (period * point.y) + phase_shift) / math.pow(2, power_value)) * envelope_value)
-            new_point_y += point.y + amplitude * ((math.sin(math.pow(2, power_value) * (period * point.z) + phase_shift) / math.pow(2, power_value)) * envelope_value)
-            new_point_z += point.z + amplitude * ((math.sin(math.pow(2, power_value) * (period * point.x) + phase_shift) / math.pow(2, power_value)) * envelope_value)
-
-        new_point = OpenMaya.MPoint(new_point_x, new_point_y, new_point_z)
-        return self.getFractalDeformedPoint(new_point, envelope_value, amplitude, period, phase_shift, iterations-1, max_iterations)
-         
-
+        return new_point
 
 
     def getDeformerInputGeometry(self, data_block, geometry_index):
