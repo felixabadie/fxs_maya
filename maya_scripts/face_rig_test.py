@@ -1,4 +1,5 @@
 import maya.OpenMaya as om
+import maya.api.OpenMaya as om2
 import pymel.core as pm
 
 def get_u_param(pnt = [], crv = None):
@@ -34,6 +35,49 @@ def get_dag_path(object_name):
 		selection_list.getDagPath(0, o_node)
 
 		return o_node
+
+
+class JointsToCurveFromEdge:
+	"""Working title"""
+
+	def __init__(self):
+		self.win_id = "fxs_joints_to_curve_from_edge"
+
+		if pm.window(self.win_id, query=True, exists=True):
+			pm.deleteUI(self.win_id)
+
+		with pm.window(self.win_id, title="Joints to Curve from Edge") as win:
+			with pm.columnLayout(adj=True):
+				pm.text(
+					label="This tool will work by taking an edge, " \
+					"converting this edge to a curve and then place joints on that curve", 
+					align="left")
+				self.prefix = pm.textFieldGrp(label="Curve and Joint prefix", text="prefix")
+				pm.text(label="Select the desired edge before launching the tool")
+				with pm.horizontalLayout():
+					pm.button(label="Cancel")
+					pm.button(label="OK", command=self.execute)
+
+
+	def execute(self, *args):
+		
+		sel = pm.ls(selection=1)
+		curve = pm.polyToCurve(name=f"{self.prefix}_curve")
+
+		pm.delete(curve, constructionHistory=True)
+
+		om_sel = om.MSelectionList()
+		om_sel.add(curve.name())
+		mobj = om_sel.getDependNode(0)
+
+		om_curve = om.MFnNurbsCurve(mobj)
+
+		curve_point_array = om.MPointArray()
+		om_curve.getCVs(curve_point_array, om.MSpace.kWorld)
+
+		for i, cv in enumerate(curve_point_array):
+
+		
 
 
 sel = pm.ls(sl=1)

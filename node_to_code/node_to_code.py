@@ -37,7 +37,7 @@ class NodeToCode:
     Interface for node to code
     """
     def __init__(self):
-        self.win_id = "fa_node_to_code"
+        self.win_id = "fxs_node_to_code"
 
         if pm.window(self.win_id, query=True, exists=True):
             pm.deleteUI(self.win_id)
