@@ -60,43 +60,53 @@ class JointsToCurveFromEdge:
 
 
 	def execute(self, *args):
+
+		joint_array = []
+		loc_array = []
+		curve_jnt_grp = pm.createNode("transform", name="curve_jnt_grp")
+		curve_loc_grp = pm.createNode("transform", name="curve_loc_grp")
 		
 		sel = pm.ls(selection=1)
 		curve = pm.polyToCurve(name=f"{self.prefix}_curve")
 
 		pm.delete(curve, constructionHistory=True)
 
-		om_sel = om.MSelectionList()
+		om_sel = om2.MSelectionList()
 		om_sel.add(curve.name())
 		mobj = om_sel.getDependNode(0)
 
-		om_curve = om.MFnNurbsCurve(mobj)
+		om_curve = om2.MFnNurbsCurve(mobj)
 
-		curve_point_array = om.MPointArray()
-		om_curve.getCVs(curve_point_array, om.MSpace.kWorld)
+		curve_point_array = om_curve.cvPositions(space=kWorld)
 
-		for i, cv in enumerate(curve_point_array):
+		for i in curve_point_array.length():
 
-		
+			loc = pm.spaceLocator(
+				name=f"{self.prefix}_loc", 
+				position=(
+					curve_point_array[i].x,
+					curve_point_array[i].y,
+					curve_point_array[i].z
+				))
 
+			loc_array.append(loc)
+			
 
-sel = pm.ls(sl=1)
-crv = "test_curveShape"
+		for l in loc_array:
+			pos = pm.xform(l, q=1, ws=1, t=1)
+			u_parm = get_u_param(pos, curve.name())
+			name = l.replace("_loc", "_pci")
+			pci = pm.createNode("pointOnCurveInfo", name=name)
 
-curve_jnt_grp = pm.createNode("transform", name="curve_jnt_grp")
+			joint = pm.joint(name=f"{curve.name()}_joint")
 
-for s in sel:
-    pos = pm.xform(s, q=1, ws=1, t=1)
-    u_parm = get_u_param(pos, crv)
-    name = s.replace("_loc", "_pci")
-    pci = pm.createNode("pointOnCurveInfo", name=name)
+			pm.connectAttr(f"{curve.name()}.worldSpace", f"{pci}.inputCurve")
+			pm.setAttr(f"{pci}.parameter", u_parm)
+			pm.connectAttr(f"{pci}.position", f"{l}.t")
 
-    joint = pm.joint(name=f"{crv}_joint")
-    
-    pm.connectAttr(f"{crv}.worldSpace", f"{pci}.inputCurve")
-    pm.setAttr(f"{pci}.parameter", u_parm)
-    pm.connectAttr(f"{pci}.position", f"{s}.t")
+			l.worldMatrix >> joint.offsetParentMatrix
+			pm.parent(l, curve_loc_grp)
+			pm.parent(joint, curve_jnt_grp)
+			
 
-    s.worldMatrix >> joint.offsetParentMatrix
-
-    pm.parent(joint, curve_jnt_grp)
+JointsToCurveFromEdge()
