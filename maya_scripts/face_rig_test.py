@@ -61,32 +61,43 @@ class JointsToCurveFromEdge:
 
 	def execute(self, *args):
 
-		joint_array = []
-		loc_array = []
-		curve_jnt_grp = pm.createNode("transform", name="curve_jnt_grp")
-		curve_loc_grp = pm.createNode("transform", name="curve_loc_grp")
-		
 		sel = pm.ls(selection=1)
-		curve = pm.polyToCurve(name=f"{self.prefix}_curve")
+		print(f"Current Selection: {sel}")
+		
+		prefix = self.prefix.getText()
+
+		curve = pm.polyToCurve(sel[0], name=f"{prefix}_curve")
+		curve_name = curve[0]
 
 		pm.delete(curve, constructionHistory=True)
 
+
+		print(f"Curve: {curve}, type: {type(curve)}")
+
+		loc_array = []
+		curve_jnt_grp = pm.createNode("transform", name="curve_jnt_grp")
+		curve_loc_grp = pm.createNode("transform", name="curve_loc_grp")
+
 		om_sel = om2.MSelectionList()
-		om_sel.add(curve.name())
-		mobj = om_sel.getDependNode(0)
+		om_sel.add(curve_name)
 
-		om_curve = om2.MFnNurbsCurve(mobj)
+		dag_path = om_sel.getDagPath(0)
+		dag_path.extendToShape()
 
-		curve_point_array = om_curve.cvPositions(space=kWorld)
+		#mobj = om_sel.getDependNode(0)
 
-		for i in curve_point_array.length():
+		om_curve = om2.MFnNurbsCurve(dag_path)
+
+		curve_point_array = om_curve.cvPositions(space=4)
+
+		for cv in curve_point_array:
 
 			loc = pm.spaceLocator(
-				name=f"{self.prefix}_loc", 
+				name=f"{prefix}_loc", 
 				position=(
-					curve_point_array[i].x,
-					curve_point_array[i].y,
-					curve_point_array[i].z
+					cv.x,
+					cv.y,
+					cv.z
 				))
 
 			loc_array.append(loc)
@@ -94,13 +105,13 @@ class JointsToCurveFromEdge:
 
 		for l in loc_array:
 			pos = pm.xform(l, q=1, ws=1, t=1)
-			u_parm = get_u_param(pos, curve.name())
+			u_parm = get_u_param(pos, curve_name)
 			name = l.replace("_loc", "_pci")
 			pci = pm.createNode("pointOnCurveInfo", name=name)
 
-			joint = pm.joint(name=f"{curve.name()}_joint")
+			joint = pm.joint(name=f"{curve_name}_joint")
 
-			pm.connectAttr(f"{curve.name()}.worldSpace", f"{pci}.inputCurve")
+			pm.connectAttr(f"{curve_name}.worldSpace", f"{pci}.inputCurve")
 			pm.setAttr(f"{pci}.parameter", u_parm)
 			pm.connectAttr(f"{pci}.position", f"{l}.t")
 
