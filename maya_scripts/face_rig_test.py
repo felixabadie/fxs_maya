@@ -62,17 +62,12 @@ class JointsToCurveFromEdge:
 	def execute(self, *args):
 
 		sel = pm.ls(selection=1)
-		print(f"Current Selection: {sel}")
-		
 		prefix = self.prefix.getText()
 
 		curve = pm.polyToCurve(sel[0], name=f"{prefix}_curve")
 		curve_name = curve[0]
 
 		pm.delete(curve, constructionHistory=True)
-
-
-		print(f"Curve: {curve}, type: {type(curve)}")
 
 		loc_array = []
 		curve_jnt_grp = pm.createNode("transform", name="curve_jnt_grp")
@@ -84,21 +79,15 @@ class JointsToCurveFromEdge:
 		dag_path = om_sel.getDagPath(0)
 		dag_path.extendToShape()
 
-		#mobj = om_sel.getDependNode(0)
 
 		om_curve = om2.MFnNurbsCurve(dag_path)
 
-		curve_point_array = om_curve.cvPositions(space=4)
+		curve_point_array = om_curve.cvPositions(space=2)
 
 		for cv in curve_point_array:
 
-			loc = pm.spaceLocator(
-				name=f"{prefix}_loc", 
-				position=(
-					cv.x,
-					cv.y,
-					cv.z
-				))
+			loc = pm.spaceLocator(name=f"{prefix}_loc")
+			loc.setTranslation((cv.x, cv.y, cv.z), space='world')
 
 			loc_array.append(loc)
 			
