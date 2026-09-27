@@ -79,16 +79,12 @@ class JointsToCurveFromEdge:
 		dag_path = om_sel.getDagPath(0)
 		dag_path.extendToShape()
 
-
 		om_curve = om2.MFnNurbsCurve(dag_path)
-
 		curve_point_array = om_curve.cvPositions(space=2)
 
 		for cv in curve_point_array:
-
 			loc = pm.spaceLocator(name=f"{prefix}_loc")
 			loc.setTranslation((cv.x, cv.y, cv.z), space='world')
-
 			loc_array.append(loc)
 			
 
@@ -107,6 +103,6 @@ class JointsToCurveFromEdge:
 			l.worldMatrix >> joint.offsetParentMatrix
 			pm.parent(l, curve_loc_grp)
 			pm.parent(joint, curve_jnt_grp)
-			
 
+			
 JointsToCurveFromEdge()
