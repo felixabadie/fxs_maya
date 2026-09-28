@@ -106,21 +106,12 @@ class JointsToCurveFromEdge:
 		om_curve = om2.MFnNurbsCurve(dag_path)
 		cv_array = om_curve.cvPositions(om2.MSpace.kObject)
 
-		cv_array_length = cv_array.__len__()
-
-		for i in range(cv_array_length-3):
+		for cv in cv_array:
 			loc = pm.spaceLocator(name=f"{prefix}_loc")
-			loc.setTranslation(
-				(
-					cv_array[i].x, 
-					cv_array[i].y, 
-					cv_array[i].z
-				), 
-				space='world'
-			)
+			loc.setTranslation((cv.x, cv.y, cv.z), space='world')
 			loc_array.append(loc)
-		
 
+		
 		for l in loc_array:
 			pos = pm.xform(l, q=1, os=1, t=1)
 			u_parm = get_u_param(pos, curve_name)
