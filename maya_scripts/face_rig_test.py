@@ -1,19 +1,23 @@
-import maya.OpenMaya as om
 import maya.api.OpenMaya as om2
 import pymel.core as pm
 
 def get_u_param(pnt = [], crv = None):
-	point = om.MPoint(pnt[0],pnt[1],pnt[2])
-	curve_fn = om.MFnNurbsCurve(get_dag_path(crv))
-	param_util=om.MScriptUtil()
-	param_ptr=param_util.asDoublePtr()
+	point = om2.MPoint(pnt[0],pnt[1],pnt[2])
+
+	dag_path = get_dag_path(crv)
+	#dag_path.extendToShape()
+	curve_fn = om2.MFnNurbsCurve(dag_path)
 	is_on_curve = curve_fn.isPointOnCurve(point)
+
 	if is_on_curve:
-		curve_fn.getParamAtPoint(point , param_ptr,0.001,om.MSpace.kObject )
+		param = curve_fn.getParamAtPoint(point, 0.001, om2.MSpace.kObject)
+
 	else:
-		point = curve_fn.closestPoint(point,param_ptr,0.001,om.MSpace.kObject)
-		curve_fn.getParamAtPoint(point , param_ptr,0.001,om.MSpace.kObject )
-	param = param_util.getDouble(param_ptr)
+		point_tuple = curve_fn.closestPoint(point, None, 0.001, om2.MSpace.kObject) #None necessary because else tolerance gets used as guess-attr
+		param = curve_fn.getParamAtPoint(point_tuple[0], 0.001, om2.MSpace.kObject)
+
+
+	
 	return param
 
 def get_dag_path(object_name):
@@ -21,19 +25,16 @@ def get_dag_path(object_name):
 		o_node_list=[]
 
 		for o in object_name:
-			selection_list = om.MSelectionList()
+			selection_list = om2.MSelectionList()
 			selection_list.add(o)
-			o_node = om.MDagPath()
-			selection_list.getDagPath(0, o_node)
+			o_node = selection_list.getDagPath(0)
 			o_node_list.append(o_node)
 		return o_node_list
 
 	else:
-		selection_list = om.MSelectionList()
+		selection_list = om2.MSelectionList()
 		selection_list.add(object_name)
-		o_node = om.MDagPath()
-		selection_list.getDagPath(0, o_node)
-
+		o_node = selection_list.getDagPath(0)
 		return o_node
 
 
@@ -77,19 +78,19 @@ class JointsToCurveFromEdge:
 		om_sel.add(curve_name)
 
 		dag_path = om_sel.getDagPath(0)
-		dag_path.extendToShape()
+		#dag_path.extendToShape()
 
 		om_curve = om2.MFnNurbsCurve(dag_path)
-		curve_point_array = om_curve.cvPositions(space=2)
+		curve_point_array = om_curve.cvPositions(om2.MSpace.kObject)
 
 		for cv in curve_point_array:
 			loc = pm.spaceLocator(name=f"{prefix}_loc")
 			loc.setTranslation((cv.x, cv.y, cv.z), space='world')
 			loc_array.append(loc)
-			
+		
 
 		for l in loc_array:
-			pos = pm.xform(l, q=1, ws=1, t=1)
+			pos = pm.xform(l, q=1, os=1, t=1)
 			u_parm = get_u_param(pos, curve_name)
 			name = l.replace("_loc", "_pci")
 			pci = pm.createNode("pointOnCurveInfo", name=name)
