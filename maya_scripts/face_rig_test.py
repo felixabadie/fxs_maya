@@ -2,7 +2,7 @@ import maya.api.OpenMaya as om2
 import pymel.core as pm
 
 def get_u_param(pnt = [], crv = None):
-	point = om2.MPoint(pnt[0],pnt[1],pnt[2])
+	point = om2.MPoint(*pnt)
 
 	dag_path = get_dag_path(crv)
 	#dag_path.extendToShape()
@@ -16,9 +16,8 @@ def get_u_param(pnt = [], crv = None):
 		point_tuple = curve_fn.closestPoint(point, None, 0.001, om2.MSpace.kObject) #None necessary because else tolerance gets used as guess-attr
 		param = curve_fn.getParamAtPoint(point_tuple[0], 0.001, om2.MSpace.kObject)
 
-
-	
 	return param
+
 
 def get_dag_path(object_name):
 	if isinstance(object_name, list):
@@ -95,8 +94,8 @@ class JointsToCurveFromEdge:
 				curve_name = sel[0].name(long=False)
 
 		loc_array = []
-		curve_jnt_grp = pm.createNode("transform", name="curve_jnt_grp")
-		curve_loc_grp = pm.createNode("transform", name="curve_loc_grp")
+		curve_jnt_grp = pm.createNode("transform", name=f"{prefix}_curve_jnt_grp")
+		curve_loc_grp = pm.createNode("transform", name=f"{prefix}_curve_loc_grp")
 
 		om_sel = om2.MSelectionList()
 		om_sel.add(curve_name)
@@ -105,11 +104,20 @@ class JointsToCurveFromEdge:
 		#dag_path.extendToShape()
 
 		om_curve = om2.MFnNurbsCurve(dag_path)
-		curve_point_array = om_curve.cvPositions(om2.MSpace.kObject)
+		cv_array = om_curve.cvPositions(om2.MSpace.kObject)
 
-		for cv in curve_point_array:
+		cv_array_length = cv_array.__len__()
+
+		for i in range(cv_array_length-3):
 			loc = pm.spaceLocator(name=f"{prefix}_loc")
-			loc.setTranslation((cv.x, cv.y, cv.z), space='world')
+			loc.setTranslation(
+				(
+					cv_array[i].x, 
+					cv_array[i].y, 
+					cv_array[i].z
+				), 
+				space='world'
+			)
 			loc_array.append(loc)
 		
 
