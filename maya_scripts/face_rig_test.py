@@ -38,6 +38,22 @@ def get_dag_path(object_name):
 		return o_node
 
 
+class TextFieldHelper:
+    def __init__(self, label, buttonLabel="Set", text="Not set"):
+        self.control = pm.textFieldButtonGrp(
+            label=label, buttonLabel=buttonLabel, text=text,
+            bc=self.set_text
+        ) # PEP8
+                
+    def set_text(self):
+        sel = pm.selected()
+        if not sel:
+            pm.warning("Warning")
+            return
+        self.control.setText(sel[0].name())
+        self.obj = sel[0]
+
+
 class JointsToCurveFromEdge:
 	"""Working title"""
 
@@ -53,7 +69,7 @@ class JointsToCurveFromEdge:
 					label="This tool will work by taking an edge, " \
 					"converting this edge to a curve and then place joints on that curve", 
 					align="left")
-				self.prefix = pm.textFieldGrp(label="Curve and Joint prefix", text="prefix")
+				self.prefix = TextFieldHelper("Type or select Prefix: ")
 				pm.text(label="Select the desired edge before launching the tool")
 				with pm.horizontalLayout():
 					pm.button(label="Cancel")
@@ -63,12 +79,20 @@ class JointsToCurveFromEdge:
 	def execute(self, *args):
 
 		sel = pm.ls(selection=1)
-		prefix = self.prefix.getText()
+		prefix = self.prefix.control.getText()
 
-		curve = pm.polyToCurve(sel[0], name=f"{prefix}_curve")
-		curve_name = curve[0]
+		# check if selection is edge
+		if isinstance(sel[0], pm.general.MeshEdge):	
+			curve = pm.polyToCurve(sel[0], name=f"{prefix}_curve")
+			curve_name = curve[0]
 
-		pm.delete(curve, constructionHistory=True)
+			pm.delete(curve, constructionHistory=True)
+
+		# check if transform and if nurbscurve
+		elif isinstance(sel[0], pm.nodetypes.Transform):
+			if isinstance(sel[0].getShape(), pm.nodetypes.NurbsCurve):
+				pm.delete(sel[0], constructionHistory=True)
+				curve_name = sel[0].name(long=False)
 
 		loc_array = []
 		curve_jnt_grp = pm.createNode("transform", name="curve_jnt_grp")
