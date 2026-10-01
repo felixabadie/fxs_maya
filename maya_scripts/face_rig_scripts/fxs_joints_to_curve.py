@@ -1,5 +1,13 @@
 import maya.api.OpenMaya as om2
 import pymel.core as pm
+from maya_scripts.prox_node_setup.generated_nodes import *
+from maya_scripts.rig_module.additional_files.utilities import create_guide
+
+
+"""
+Currently not working as intended
+"""
+
 
 def get_u_param(pnt = [], crv = None):
 	point = om2.MPoint(*pnt)
@@ -100,8 +108,8 @@ class JointsToCurveFromEdge:
 				curve_name = sel[0].name(long=False)
 
 		loc_array = []
-		curve_jnt_grp = pm.createNode("transform", name=f"{prefix}_curve_jnt_grp")
-		curve_loc_grp = pm.createNode("transform", name=f"{prefix}_curve_loc_grp")
+		curve_jnt_grp = transform(name=f"{prefix}_curve_jnt_grp")
+		curve_loc_grp = transform(name=f"{prefix}_curve_loc_grp")
 
 		om_sel = om2.MSelectionList()
 		om_sel.add(curve_name)
@@ -113,26 +121,25 @@ class JointsToCurveFromEdge:
 		cv_array = om_curve.cvPositions(om2.MSpace.kObject)
 
 		for cv in cv_array:
-			loc = pm.spaceLocator(name=f"{prefix}_loc")
-			loc.setTranslation((cv.x, cv.y, cv.z), space='world')
+			loc = create_guide(name=f"{prefix}_loc", position=(cv.x, cv.y, cv.z))
 			loc_array.append(loc)
 
 		
-		for l in loc_array:
-			pos = pm.xform(l, q=1, os=1, t=1)
+		for loc in loc_array:
+			pos = pm.xform(loc.node, q=1, os=1, t=1)
 			u_parm = get_u_param(pos, curve_name)
-			name = l.replace("_loc", "_pci")
-			pci = pm.createNode("pointOnCurveInfo", name=name)
+			name = loc.node.replace("_loc", "_pci")
+			pci = pointOnCurveInfo(name=name)
 
-			joint = pm.joint(name=f"{curve_name}_joint")
+			jnt = joint(name=f"{curve_name}_joint")
 
-			pm.connectAttr(f"{curve_name}.worldSpace", f"{pci}.inputCurve")
-			pm.setAttr(f"{pci}.parameter", u_parm)
-			pm.connectAttr(f"{pci}.position", f"{l}.t")
+			pm.connectAttr(f"{curve_name}.worldSpace", pci.inputCurve)
+			pci.parameter.set(u_parm)
+			pci.position >> loc.translate
 
-			l.worldMatrix >> joint.offsetParentMatrix
-			pm.parent(l, curve_loc_grp)
-			pm.parent(joint, curve_jnt_grp)
-
+			loc.worldMatrix >> jnt.offsetParentMatrix
+			pm.parent(loc, curve_loc_grp)
+			pm.parent(jnt, curve_jnt_grp)
+	
 			
 JointsToCurveFromEdge()
