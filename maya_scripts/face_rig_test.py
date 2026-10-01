@@ -81,11 +81,18 @@ class JointsToCurveFromEdge:
 		prefix = self.prefix.control.getText()
 
 		# check if selection is edge
-		if isinstance(sel[0], pm.general.MeshEdge):	
-			curve = pm.polyToCurve(sel[0], name=f"{prefix}_curve")
-			curve_name = curve[0]
+		
+		if isinstance(sel[0], pm.general.MeshEdge):
+			for s in sel:
+				if isinstance(s, pm.general.MeshEdge):
+					continue
 
-			pm.delete(curve, constructionHistory=True)
+				else:
+					pm.error("Selection contains not just edges")
+
+			curve = pm.polyToCurve(name=f"{prefix}_curve")
+			curve_name = curve[0]
+		
 
 		# check if transform and if nurbscurve
 		elif isinstance(sel[0], pm.nodetypes.Transform):
