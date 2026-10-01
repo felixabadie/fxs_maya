@@ -81,7 +81,6 @@ class JointsToCurveFromEdge:
 		prefix = self.prefix.control.getText()
 
 		# check if selection is edge
-		
 		if isinstance(sel[0], pm.general.MeshEdge):
 			for s in sel:
 				if isinstance(s, pm.general.MeshEdge):
