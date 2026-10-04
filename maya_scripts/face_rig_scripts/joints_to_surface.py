@@ -1,22 +1,61 @@
 import maya.api.OpenMaya as om2
 import pymel.core as pm
 
-def get_u_param(pnt = [], crv = None):
-	point = om2.MPoint(*pnt)
 
-	dag_path = get_dag_path(crv)
-	#dag_path.extendToShape()
-	curve_fn = om2.MFnNurbsCurve(dag_path)
-	is_on_curve = curve_fn.isPointOnCurve(point)
+def add_pin_joints(name:str, ribbon, number_of_pins):
 
-	if is_on_curve:
-		param = curve_fn.getParamAtPoint(point, 0.001, om2.MSpace.kObject)
+	jnt_list = []
 
-	else:
-		point_tuple = curve_fn.closestPoint(point, None, 0.001, om2.MSpace.kObject) #None necessary because else tolerance gets used as guess-attr
-		param = curve_fn.getParamAtPoint(point_tuple[0], 0.001, om2.MSpace.kObject)
+	pin_list = add_pins_to_ribbon_uv(
+		name=name,
+		ribbon_shape=ribbon.getShape(),
+		number_of_pins=number_of_pins
+	)
 
-	return param
+	for index, pin in enumerate(pin_list):
+		jnt = pm.createNode("joint", name=f"{name}_{index}_bind_jnt")
+		pm.makeIdentity(jnt, apply=True, t=0, r=1, s=0, n=0, pn=True)
+		pm.xform(jnt, translation=(0, 0, 0))
+
+		pin.worldMatrix[0] >> jnt.offsetParentMatrix
+		jnt_list.append(jnt)
+
+	return pin_list, jnt_list
+
+
+def add_pins_to_ribbon_uv(name:str, ribbon_shape, number_of_pins):
+
+	pin_list = []
+
+	uv_pin = pm.createNode("uvPin", name=f"{name}_uvPin")
+	ribbon_shape.worldSpace[0] >> uv_pin.originalGeometry
+	ribbon_shape.worldSpace[0] >> uv_pin.deformedGeometry
+
+	for i in range(number_of_pins):
+
+		u_pos = (i/float(number_of_pins-1))
+		v_pos = 0.5
+
+		name_suf = str(i)
+
+		pin_name = f"{name}_pin_{name_suf}"
+		pin_locator = pm.spaceLocator(name=pin_name)
+		pin_locatorShape = pin_locator.getShape()
+
+		pin_locatorShape.addAttr("parameterU", at="double", keyable=True, dv=u_pos)
+		pin_locatorShape.addAttr("parameterV", at="double", keyable=True, dv=v_pos)
+
+		pin_locatorShape.parameterU.set(u_pos)
+		pin_locatorShape.parameterV.set(v_pos)
+
+		pin_locatorShape.parameterU >> uv_pin.coordinate[i].coordinateU
+		pin_locatorShape.parameterV >> uv_pin.coordinate[i].coordinateV
+
+		uv_pin.outputMatrix[i] >> pin_locator.offsetParentMatrix
+
+		pin_list.append(pm.PyNode(pin_name))
+
+	return pin_list
 
 
 def get_dag_path(object_name):
@@ -73,6 +112,7 @@ class JointsToSurfaceFromEdge:
 					"and create a nurbssurface. It will the place joints on said nurbssurface"
 				)
 				self.prefix = TextFieldHelper("Type or select Prefix: ")
+				self.num_pins = pm.intFieldGrp(label="Amount Joints: ", numberOfFields=1)
 				pm.text(label="Select the desired edge before launching the tool")
 				with pm.horizontalLayout():
 					pm.button(label="Cancel")
@@ -83,6 +123,8 @@ class JointsToSurfaceFromEdge:
 
 		sel = pm.ls(selection=1)
 		prefix = self.prefix.control.getText()
+
+		num_pins = pm.intFieldGrp(self.num_pins, query=True, value1=True)
 
 		ribbon_offset = 1
 
@@ -152,6 +194,20 @@ class JointsToSurfaceFromEdge:
 		ribbon_shape = ribbon.getShape()
 
 		ribbon_loft.outputSurface >> ribbon_shape.create
+
+
+		ribbon_pins, ribbon_joints = add_pin_joints(
+			name=prefix,
+			ribbon=ribbon,
+			number_of_pins=num_pins
+		)
+
+		ribbon_pin_grp = pm.createNode("transform", name=f"{prefix}_ribbon_pin_grp")
+		ribbon_joint_grp = pm.createNode("transform", name=f"{prefix}_ribbon_joint_grp")
+
+		for pin, jnt in zip(ribbon_pins, ribbon_joints):
+			pm.parent(pin, ribbon_pin_grp)
+			pm.parent(jnt, ribbon_joint_grp)
 
 
 
