@@ -1,5 +1,6 @@
 import maya.api.OpenMaya as om2
 import pymel.core as pm
+import numpy as np
 
 
 def add_pin_joints(name:str, ribbon, number_of_pins):
@@ -113,6 +114,7 @@ class JointsToSurfaceFromEdge:
 				)
 				self.prefix = TextFieldHelper("Type or select Prefix: ")
 				self.num_pins = pm.intFieldGrp(label="Amount Joints: ", numberOfFields=1)
+
 				pm.text(label="Select the desired edge before launching the tool")
 				with pm.horizontalLayout():
 					pm.button(label="Cancel")
@@ -126,7 +128,6 @@ class JointsToSurfaceFromEdge:
 
 		num_pins = pm.intFieldGrp(self.num_pins, query=True, value1=True)
 
-		ribbon_offset = 1
 
 		#check if selection is edge
 		if isinstance(sel[0], pm.general.MeshEdge):
@@ -137,14 +138,14 @@ class JointsToSurfaceFromEdge:
 				else:
 					pm.error("Selection contains not just edges")
 
-			middle_curve = pm.polyToCurve(name=f"{prefix}_middle_curve", form=0)
-			pm.delete(middle_curve, constructionHistory=True)
-			middle_curve_name = middle_curve[0]
+			mid_curve = pm.polyToCurve(name=f"{prefix}_mid_curve", form=0)
+			pm.delete(mid_curve, constructionHistory=True)
+			mid_curve_name = mid_curve[0]
 
 
 		elif isinstance(sel[0], pm.nodetypes.Transform):
 			if isinstance(sel[0].getShape(), pm.nodetypes.NurbsCurve):
-				middle_curve_name = sel[0].name(long=False)
+				mid_curve_name = sel[0].name(long=False)
 				pm.delete(sel[0], constructionHistory=True)
 			else:
 				pm.error("Selection is neither edge nor curve.")
@@ -153,36 +154,56 @@ class JointsToSurfaceFromEdge:
 			pm.error("Selection is neither edge nor curve.")
 
 		om_sel = om2.MSelectionList()
-		om_sel.add(middle_curve_name)
+		om_sel.add(mid_curve_name)
 
 		dag_path = om_sel.getDagPath(0)
 
-		middle_curve_test = pm.PyNode(dag_path)
-		middle_curve_test_shape = middle_curve_test.getShape()
+		pm_mid_curve = pm.PyNode(dag_path)
+		pm_mid_curve_shape = pm_mid_curve.getShape()
 
-		om_middle_curve = om2.MFnNurbsCurve(dag_path)
-		middle_cv_array = om_middle_curve.cvPositions(om2.MSpace.kObject)
+		om_mid_curve = om2.MFnNurbsCurve(dag_path)
+		middle_cv_array = om_mid_curve.cvPositions(om2.MSpace.kObject)
 
-		upper_cv_array = []
-		lower_cv_array = []
+		
+		midcurve_offset_x = om2.MVector(1, 0, 0)
+		midcurve_offset_y = om2.MVector(0, 1, 0)
+		midcurve_offset_z = om2.MVector(0, 0, 1)
+	
 
-		#duplicate curve points with offset to new MPointArrays. Later create Curves out of said Arrays
-		for cv in middle_cv_array:
-			upper_point = (cv.x, cv.y + ribbon_offset, cv.z)
-			upper_cv_array.append(upper_point)
-			
-			lower_point = (cv.x, cv.y - ribbon_offset, cv.z)
-			lower_cv_array.append(lower_point)
+		for offset in [midcurve_offset_x, midcurve_offset_y, midcurve_offset_z]:
 
-		upper_curve = pm.curve(p=upper_cv_array, name=f"{prefix}_upper_curve")
-		lower_curve = pm.curve(p=lower_cv_array, name=f"{prefix}_lower_curve")
+			upper_cv_array = []
+			lower_cv_array = []
 
-		upper_curve_shape = upper_curve.getShape()
-		lower_curve_shape = lower_curve.getShape()
+			for cv in middle_cv_array:
+				om_upper_point = cv + offset
+				upper_point = (om_upper_point.x, om_upper_point.y, om_upper_point.z)
+				upper_cv_array.append(upper_point)
+
+			upper_curve = pm.curve(p=upper_cv_array, name=f"{prefix}_upper_curve")
+			upper_curve_shape = upper_curve.getShape()
+
+			result = pm.curveIntersect(pm_mid_curve, upper_curve, tolerance=0.01)
+
+			if not result:
+
+				for cv in middle_cv_array:
+					om_lowerpoint = cv - offset
+					lower_point = (om_lowerpoint.x, om_lowerpoint.y, om_lowerpoint.z)
+					lower_cv_array.append(lower_point)
+
+				lower_curve = pm.curve(p=lower_cv_array, name=f"{prefix}_lower_curve")
+				lower_curve_shape = lower_curve.getShape()
+
+				break
+
+			else:
+				pm.delete(upper_curve)
+
 
 		ribbon_loft = pm.createNode("loft", name=f"{prefix}_ribbon_loft")
 		upper_curve_shape.worldSpace[0] >> ribbon_loft.inputCurve[0]
-		middle_curve_test_shape.worldSpace[0] >> ribbon_loft.inputCurve[1]
+		pm_mid_curve_shape.worldSpace[0] >> ribbon_loft.inputCurve[1]
 		lower_curve_shape.worldSpace[0] >> ribbon_loft.inputCurve[2]
 		ribbon_loft.uniform.set(1)
 		ribbon_loft.autoReverse.set(1)
@@ -212,4 +233,4 @@ class JointsToSurfaceFromEdge:
 
 
 
-JointsToSurfaceFromEdge()	
+JointsToSurfaceFromEdge()
