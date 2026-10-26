@@ -1,4 +1,5 @@
 from pathlib import Path
+from maya.utils import executeDeferred
 
 from capito.maya.environ.vars import getenv
 from capito.maya.ui import shelfes
@@ -11,5 +12,4 @@ def build_shelfes():
     for file in json_shelf_dir.glob("*.json"):
         tls.load_from_json(str(file))
 
-
-build_shelfes()
+executeDeferred(build_shelfes)
